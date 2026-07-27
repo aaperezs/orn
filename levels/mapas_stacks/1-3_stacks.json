@@ -1,0 +1,443 @@
+{
+  "stacks": [
+    {
+      "pos": [
+        7,
+        4
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-2",
+                "exit_id": "exit1_3-1_2"
+              }
+            }
+          ],
+          "once": false,
+          "id": "gate1_3-1_2"
+        }
+      ]
+    },
+    {
+      "pos": [
+        8,
+        4
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit1_2-1_3"
+        }
+      ]
+    },
+    {
+      "pos": [
+        60,
+        11
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        7,
+        37
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        53,
+        37
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        38,
+        18
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        5,
+        9
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-2",
+                "exit_id": "exit1_3-1_2"
+              }
+            }
+          ],
+          "once": false,
+          "id": "gate1_3-1_2"
+        }
+      ]
+    },
+    {
+      "pos": [
+        6,
+        9
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit_gate1_2-1_3"
+        }
+      ]
+    },
+    {
+      "pos": [
+        2,
+        1
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        2,
+        15
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        2,
+        37
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        29,
+        38
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        65,
+        32
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "replace_sprite",
+              "params": {
+                "sprite_id": "puerta_abierta"
+              }
+            }
+          ],
+          "once": false,
+          "id": "cerrada_boss1_1"
+        }
+      ]
+    },
+    {
+      "pos": [
+        73,
+        16
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "condiciones": [
+            {
+              "tipo": "item_count",
+              "params": {
+                "item": "key_willow",
+                "operador": ">=",
+                "valor": 1
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "remove_sprite",
+              "params": {}
+            },
+            {
+              "tipo": "replace_sprite",
+              "params": {
+                "sprite_id": "puerta_abierta"
+              }
+            }
+          ],
+          "once": true,
+          "id": "abrir_boss1_1"
+        },
+        {
+          "trigger": "interact",
+          "condiciones": [
+            {
+              "tipo": "evaluar_evento",
+              "params": {
+                "evento_id": "abrir_boss1_1",
+                "estado": "pendiente"
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Necesitas encontrar la willow key"
+              }
+            }
+          ],
+          "once": false,
+          "id": ""
+        }
+      ]
+    },
+    {
+      "pos": [
+        8,
+        2
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        45,
+        33
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "escamas",
+              "params": {
+                "operador": ">=",
+                "valor": 10
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Gate abierto"
+              }
+            },
+            {
+              "tipo": "replace_sprite",
+              "params": {
+                "sprite_id": "gate"
+              }
+            },
+            {
+              "tipo": "remove_escamas",
+              "params": {
+                "cantidad": 10
+              }
+            }
+          ],
+          "once": true,
+          "id": "abre_gate1_4"
+        },
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "escamas",
+              "params": {
+                "operador": "<",
+                "valor": 10
+              }
+            },
+            {
+              "tipo": "evaluar_evento",
+              "params": {
+                "evento_id": "abre_gate1_4",
+                "estado": "pendiente"
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Debes pagar 10 escamas"
+              }
+            }
+          ],
+          "once": false,
+          "id": "cerrado_gate1_3"
+        },
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "evaluar_evento",
+              "params": {
+                "evento_id": "abre_gate1_4",
+                "estado": "finalizado"
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-4",
+                "exit_id": "exit1_3-1_4"
+              }
+            }
+          ],
+          "once": false,
+          "id": "gate1_3-1_4"
+        }
+      ]
+    },
+    {
+      "pos": [
+        45,
+        32
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit1_4-1_3"
+        }
+      ]
+    },
+    {
+      "pos": [
+        73,
+        13
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "flag",
+              "params": {
+                "flag": "boss_1arena_derrotado",
+                "operador": "es_falso"
+              }
+            },
+            {
+              "tipo": "evaluar_evento",
+              "params": {
+                "evento_id": "exit_demo1",
+                "estado": "pendiente"
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-arena",
+                "exit_id": "exit1_3-1_arena"
+              }
+            }
+          ],
+          "once": false,
+          "id": "to_1-arena"
+        }
+      ]
+    },
+    {
+      "pos": [
+        35,
+        12
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        17,
+        8
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        58,
+        31
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        14,
+        12
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        43,
+        10
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        23,
+        19
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        73,
+        16
+      ],
+      "z": 0,
+      "eventos": []
+    }
+  ]
+}

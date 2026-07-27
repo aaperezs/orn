@@ -1,0 +1,100 @@
+{
+  "stacks": [
+    {
+      "pos": [
+        9,
+        11
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        3,
+        11
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "bloquear_mandos",
+              "params": {
+                "bloquear": "True"
+              }
+            },
+            {
+              "tipo": "start_boss_fight",
+              "params": {}
+            },
+            {
+              "tipo": "esperar",
+              "params": {
+                "segundos": 3
+              }
+            },
+            {
+              "tipo": "iniciar_dialogo",
+              "params": {
+                "dialogo_id": "tronco/entrada"
+              }
+            },
+            {
+              "tipo": "bloquear_mandos",
+              "params": {
+                "bloquear": "False"
+              }
+            }
+          ],
+          "once": true,
+          "id": "exit1_3-1_arena"
+        }
+      ]
+    },
+    {
+      "pos": [
+        0,
+        0
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "on_boss_defeated",
+          "boss_id": "tronco",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "bloquear_mandos",
+              "params": {
+                "bloquear": true
+              }
+            },
+            {
+              "tipo": "iniciar_dialogo",
+              "params": {
+                "dialogo_id": "tronco/salida"
+              }
+            },
+            {
+              "tipo": "iniciar_demo",
+              "params": {
+                "demo_id": "golpe_cabeza"
+              }
+            },
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "habilidad-1",
+                "exit_id": "demo_hab_1"
+              }
+            }
+          ],
+          "once": true,
+          "id": "post_boss"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+from .repositorio_comida import RepositorioComida
+from .repositorio_enemigos import RepositorioEnemigos
+from .repositorio_habilidades import RepositorioHabilidades
+from .repositorio_jefes import RepositorioJefes
+from .repositorio_objetos import RepositorioObjetos
+from .repositorio_recetas import RepositorioRecetas
+from .repositorio_botin import RepositorioBotin
+

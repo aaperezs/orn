@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "ancho": 40,
+  "alto": 15,
+  "grid": {
+    "35,12": "gate_forward",
+    "2,12": "pasto",
+    "3,12": "pasto",
+    "4,12": "pasto"
+  }
+}

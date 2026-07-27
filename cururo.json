@@ -1,0 +1,33 @@
+{
+  "name": "Orm: La Serpiente Enroscada",
+  "id": "orm",
+  "version": "1.0.0",
+  "type": "game",
+  "screens": {
+    "enabled": true,
+    "items": [
+      "cururo_games",
+      "title",
+      "main_menu",
+      "prologue"
+    ],
+    "config": {
+      "cururo_games": {
+        "duration_ms": 3000,
+        "enabled": true
+      },
+      "title": {
+        "duration_ms": 2000,
+        "enabled": true
+      },
+      "main_menu": {
+        "duration_ms": 0,
+        "enabled": false
+      },
+      "prologue": {
+        "duration_ms": 0,
+        "enabled": true
+      }
+    }
+  }
+}

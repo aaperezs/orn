@@ -1,0 +1,10 @@
+{
+  "gates": [
+    {
+      "char": "X",
+      "destino": "__return__"
+    }
+  ],
+  "spawn": {"pos": [12, 12]},
+  "cofres": []
+}

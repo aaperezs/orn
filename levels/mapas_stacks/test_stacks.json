@@ -1,0 +1,132 @@
+{
+  "stacks": [
+    {
+      "pos": [
+        11,
+        6
+      ],
+      "z_layer": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Cortaste la hierba!"
+              }
+            },
+            {
+              "tipo": "spawn_entity",
+              "params": {
+                "sprite_id": "cofre",
+                "offset_x": 0,
+                "offset_y": 1,
+                "z": 0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pos": [
+        5,
+        8
+      ],
+      "z_layer": 0,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "condiciones": [
+            {
+              "tipo": "has_item",
+              "params": {
+                "item": "gema_azul",
+                "cantidad_min": 1
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "remove_item",
+              "params": {
+                "item": "gema_azul",
+                "cantidad": 1
+              }
+            },
+            {
+              "tipo": "replace_sprite",
+              "params": {
+                "sprite_id": "roca_grieta"
+              }
+            },
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Usaste gema azul!"
+              }
+            },
+            {
+              "tipo": "set_flag",
+              "params": {
+                "flag": "roca_golpeada"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pos": [
+        12,
+        6
+      ],
+      "z_layer": 0,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "condiciones": [
+            {
+              "tipo": "has_ability",
+              "params": {
+                "ability": "golpe_roca",
+                "nivel_min": 2
+              }
+            },
+            {
+              "tipo": "has_pp",
+              "params": {
+                "min": 3
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "consume_pp",
+              "params": {
+                "cantidad": 3
+              }
+            },
+            {
+              "tipo": "spawn_entity",
+              "params": {
+                "sprite_id": "comida_normal",
+                "offset_x": 1,
+                "offset_y": 0,
+                "z": 0
+              }
+            },
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Golpeaste la roca!"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

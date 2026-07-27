@@ -1,0 +1,281 @@
+{
+  "stacks": [
+    {
+      "pos": [
+        0,
+        4
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        39,
+        3
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        0,
+        3
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        37,
+        27
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        33,
+        28
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        22,
+        56
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        19,
+        53
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": ""
+        }
+      ]
+    },
+    {
+      "pos": [
+        18,
+        52
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit1_3-1_4"
+        }
+      ]
+    },
+    {
+      "pos": [
+        29,
+        1
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        4,
+        2
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        38,
+        31
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "give_item",
+              "params": {
+                "item": "key_willow",
+                "cantidad": 1
+              }
+            },
+            {
+              "tipo": "replace_sprite",
+              "params": {
+                "sprite_id": "cofre_vacio"
+              }
+            }
+          ],
+          "once": true,
+          "id": "chest_key1_3"
+        }
+      ]
+    },
+    {
+      "pos": [
+        38,
+        32
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        38,
+        32
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        11,
+        52
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-3",
+                "exit_id": "exit1_4-1_3"
+              }
+            }
+          ],
+          "once": false,
+          "id": "gate1_4-1_3"
+        }
+      ]
+    },
+    {
+      "pos": [
+        29,
+        59
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        11,
+        51
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit1_3-1_4"
+        }
+      ]
+    },
+    {
+      "pos": [
+        8,
+        22
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        20,
+        0
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "boss_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "mostrar_ventana",
+              "params": {
+                "ventana_id": "fin_mundo1"
+              }
+            }
+          ],
+          "once": false,
+          "id": ""
+        }
+      ]
+    },
+    {
+      "pos": [
+        21,
+        0
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "boss_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "mostrar_ventana",
+              "params": {
+                "ventana_id": "fin_mundo1"
+              }
+            }
+          ],
+          "once": false,
+          "id": ""
+        }
+      ]
+    },
+    {
+      "pos": [
+        38,
+        30
+      ],
+      "z": 2,
+      "eventos": [
+        {
+          "trigger": "on_event_finalized",
+          "boss_id": "",
+          "watched_event_id": "chest_key1_3",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "remove_sprite",
+              "params": {}
+            }
+          ],
+          "once": true,
+          "id": "press_e1-4"
+        }
+      ]
+    },
+    {
+      "pos": [
+        38,
+        30
+      ],
+      "z": 1,
+      "eventos": []
+    }
+  ]
+}

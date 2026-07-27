@@ -1,0 +1,93 @@
+{
+  "comida_dorada": {
+    "frames": [
+      "comida_dorada",
+      "comida_dorada_2"
+    ],
+    "interval": 400,
+    "glow": {
+      "enabled": true,
+      "color": [
+        255,
+        215,
+        0
+      ],
+      "radius": 30,
+      "alpha": 20
+    }
+  },
+  "comida_normal": {
+    "frames": [
+      "comida_normal"
+    ],
+    "interval": 500,
+    "glow": {
+      "enabled": true,
+      "color": [
+        255,
+        50,
+        50
+      ],
+      "radius": 30,
+      "alpha": 10
+    }
+  },
+  "close_gate": {
+    "frames": [
+      "close",
+      "close_2"
+    ],
+    "interval": 500,
+    "glow": {
+      "enabled": false
+    }
+  },
+  "anim_c31a8a": {
+    "frames": [],
+    "interval": 500
+  },
+  "anim_7f0539": {
+    "frames": [],
+    "interval": 500
+  },
+  "comida_mana": {
+    "frames": [
+      "comida_mana"
+    ],
+    "interval": 500,
+    "glow": {
+      "enabled": true,
+      "color": [
+        50,
+        130,
+        255
+      ],
+      "radius": 25,
+      "alpha": 20
+    }
+  },
+  "anim_49421f": {
+    "frames": [],
+    "interval": 500
+  },
+  "press_q": {
+    "frames": [
+      "press_q",
+      "dialogo_base"
+    ],
+    "interval": 500,
+    "glow": {
+      "enabled": false
+    }
+  },
+  "press_e": {
+    "frames": [
+      "press_e",
+      "dialogo_base"
+    ],
+    "interval": 500,
+    "glow": {
+      "enabled": false
+    }
+  }
+}

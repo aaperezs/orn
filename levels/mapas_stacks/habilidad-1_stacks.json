@@ -1,0 +1,144 @@
+{
+  "stacks": [
+    {
+      "pos": [
+        35,
+        12
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "auto_caminar",
+              "params": {
+                "direccion": ""
+              }
+            },
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-3",
+                "exit_id": "to_1-arena"
+              }
+            },
+            {
+              "tipo": "bloquear_mandos",
+              "params": {
+                "bloquear": "False"
+              }
+            }
+          ],
+          "once": true,
+          "id": "exit_demo1"
+        }
+      ]
+    },
+    {
+      "pos": [
+        4,
+        12
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "boss_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "despertar",
+              "params": {}
+            },
+            {
+              "tipo": "avanzar",
+              "params": {
+                "direccion": "DERECHA"
+              }
+            },
+            {
+              "tipo": "desbloquear_habilidad",
+              "params": {
+                "habilidad": "golpe_cabeza"
+              }
+            },
+            {
+              "tipo": "cambiar_skin",
+              "params": {
+                "skin": "golpe"
+              }
+            },
+            {
+              "tipo": "equipar_habilidad",
+              "params": {
+                "habilidad": "golpe_cabeza"
+              }
+            },
+            {
+              "tipo": "auto_caminar",
+              "params": {
+                "direccion": "DERECHA"
+              }
+            }
+          ],
+          "once": true,
+          "id": "demo_hab_1"
+        }
+      ]
+    },
+    {
+      "pos": [
+        16,
+        12
+      ],
+      "z": 0,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "boss_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "esperar",
+              "params": {
+                "segundos": 1
+              }
+            },
+            {
+              "tipo": "accion_botton",
+              "params": {
+                "tecla": "Q"
+              }
+            },
+            {
+              "tipo": "esperar",
+              "params": {
+                "segundos": 1
+              }
+            },
+            {
+              "tipo": "accion_botton",
+              "params": {
+                "tecla": "Q"
+              }
+            },
+            {
+              "tipo": "despertar",
+              "params": {}
+            },
+            {
+              "tipo": "auto_caminar",
+              "params": {
+                "direccion": "DERECHA"
+              }
+            }
+          ],
+          "once": true,
+          "id": "ataque_hab_1"
+        }
+      ]
+    }
+  ]
+}

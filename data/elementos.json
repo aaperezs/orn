@@ -1,0 +1,374 @@
+{
+  "pasto": {
+    "sprite_id": "pasto",
+    "name": "Pasto",
+    "behavior": "suelo",
+    "properties": {}
+  },
+  "pasto_esteril": {
+    "sprite_id": "pasto_esteril",
+    "name": "Pasto esteril",
+    "behavior": "suelo",
+    "properties": {
+      "no_food_spawn": true
+    }
+  },
+  "piso_piedra": {
+    "sprite_id": "piso_piedra",
+    "name": "Piso piedra",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "pared": {
+    "sprite_id": "pared",
+    "name": "Pared",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false,
+      "destructible_hp": 2,
+      "pushable": false
+    }
+  },
+  "bloque_acero": {
+    "sprite_id": "bloque_acero",
+    "name": "Bloque acero",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false,
+      "pushable": false
+    }
+  },
+  "roca": {
+    "sprite_id": "roca",
+    "name": "Roca",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": true,
+      "destructible_hp": 2,
+      "pushable": false,
+      "cracked_sprite": "roca_grieta"
+    }
+  },
+  "roca_grieta": {
+    "sprite_id": "roca_grieta",
+    "name": "Roca grieta",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": true,
+      "destructible_hp": 1,
+      "pushable": false
+    }
+  },
+  "roca_hielo": {
+    "sprite_id": "roca_hielo",
+    "name": "Roca hielo",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": true,
+      "destructible_hp": 2,
+      "pushable": false
+    }
+  },
+  "roca_nieve": {
+    "sprite_id": "roca_nieve",
+    "name": "Roca nieve",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": true,
+      "destructible_hp": 2,
+      "pushable": false
+    }
+  },
+  "arbol": {
+    "sprite_id": "arbol",
+    "name": "Arbol",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false,
+      "pushable": false
+    }
+  },
+  "hierba_0": {
+    "sprite_id": "hierba_0",
+    "name": "Hierba 0",
+    "behavior": "hierba",
+    "properties": {}
+  },
+  "hierba_1": {
+    "sprite_id": "hierba_1",
+    "name": "Hierba 1",
+    "behavior": "hierba",
+    "properties": {}
+  },
+  "hierba_2": {
+    "sprite_id": "hierba_2",
+    "name": "Hierba 2",
+    "behavior": "hierba",
+    "properties": {}
+  },
+  "cofre": {
+    "sprite_id": "cofre",
+    "name": "Cofre",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false
+    }
+  },
+  "comida_normal": {
+    "sprite_id": "comida_normal",
+    "name": "Comida normal",
+    "behavior": "food",
+    "properties": {
+      "food_type": "normal",
+      "animation": "comida_normal"
+    }
+  },
+  "comida_mana": {
+    "sprite_id": "comida_mana",
+    "name": "Comida mana",
+    "behavior": "food",
+    "properties": {
+      "food_type": "mana",
+      "animation": "comida_mana"
+    }
+  },
+  "comida_dorada": {
+    "sprite_id": "comida_dorada",
+    "name": "Comida dorada",
+    "behavior": "food",
+    "properties": {
+      "food_type": "dorada"
+    }
+  },
+  "enemigo_melee_v": {
+    "sprite_id": "enemigo_melee",
+    "name": "Enemigo V",
+    "behavior": "enemigo_melee",
+    "properties": {
+      "solid": true,
+      "damage_type": "mata",
+      "destructible": true,
+      "patron": "vertical"
+    }
+  },
+  "enemigo_melee_h": {
+    "sprite_id": "enemigo_melee",
+    "name": "Enemigo H",
+    "behavior": "enemigo_melee",
+    "properties": {
+      "solid": true,
+      "damage_type": "mata",
+      "destructible": true,
+      "patron": "horizontal"
+    }
+  },
+  "enemigo_melee_c": {
+    "sprite_id": "enemigo_melee",
+    "name": "Enemigo C",
+    "behavior": "enemigo_melee",
+    "properties": {
+      "solid": true,
+      "damage_type": "mata",
+      "destructible": true,
+      "patron": "circular"
+    }
+  },
+  "enemigo_shooter_h": {
+    "sprite_id": "enemigo_shooter",
+    "name": "Shooter H",
+    "behavior": "enemigo_shooter",
+    "properties": {
+      "solid": true,
+      "damage_type": "mata",
+      "destructible": true,
+      "patron": "shooter_h"
+    }
+  },
+  "enemigo_shooter_v": {
+    "sprite_id": "enemigo_shooter",
+    "name": "Shooter V",
+    "behavior": "enemigo_shooter",
+    "properties": {
+      "solid": true,
+      "damage_type": "mata",
+      "destructible": true,
+      "patron": "shooter_v"
+    }
+  },
+  "inicio": {
+    "sprite_id": "inicio",
+    "name": "Inicio",
+    "behavior": "spawn",
+    "properties": {}
+  },
+  "gate_forward": {
+    "sprite_id": "gate",
+    "name": "Gate",
+    "behavior": "suelo",
+    "properties": {
+      "no_food_spawn": true
+    }
+  },
+  "portal": {
+    "sprite_id": "portal",
+    "name": "Portal",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "jefe": {
+    "sprite_id": "jefe",
+    "name": "Jefe",
+    "behavior": "boss",
+    "properties": {}
+  },
+  "restricted": {
+    "sprite_id": "restricted",
+    "name": "Restringido",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "espinas": {
+    "sprite_id": "espinas",
+    "name": "Espinas",
+    "behavior": "peligroso",
+    "properties": {
+      "solid": false,
+      "damage_type": "mata"
+    }
+  },
+  "close": {
+    "sprite_id": "close",
+    "name": "close",
+    "behavior": "decorative",
+    "properties": {
+      "animation": "close_gate"
+    }
+  },
+  "pasto_esteril_top": {
+    "sprite_id": "pasto_esteril_top",
+    "name": "pasto_esteril_top",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "pasto_top": {
+    "sprite_id": "pasto_top",
+    "name": "pasto_top",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "big_tree_button": {
+    "sprite_id": "bigTree_r1_c0",
+    "name": "bigTree_b",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false,
+      "destructible_hp": 2,
+      "pushable": false
+    }
+  },
+  "big_tree_top": {
+    "sprite_id": "bigTree_r0_c0",
+    "name": "bigTreea",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "puerta_abierta": {
+    "sprite_id": "puerta_abierta",
+    "name": "puerta_abierta",
+    "behavior": "decorative",
+    "properties": {}
+  },
+  "puerta_cerrada": {
+    "sprite_id": "puerta_cerrada",
+    "name": "puerta_cerrada",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false,
+      "destructible_hp": 2,
+      "pushable": false,
+      "animation": "",
+      "cracked_sprite": ""
+    }
+  },
+  "bosque_nieve": {
+    "sprite_id": "bosque_nieve",
+    "name": "bosque_nieve",
+    "behavior": "suelo",
+    "properties": {
+      "no_food_spawn": false
+    }
+  },
+  "nieve": {
+    "sprite_id": "nieve",
+    "name": "nieve",
+    "behavior": "suelo",
+    "properties": {
+      "no_food_spawn": false
+    }
+  },
+  "nieve_infertil": {
+    "sprite_id": "nieve_infertil",
+    "name": "nieve_infertil",
+    "behavior": "suelo",
+    "properties": {
+      "no_food_spawn": true
+    }
+  },
+  "nuevo_elemento": {
+    "sprite_id": "monte_nieve",
+    "name": "monte_nieve",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false,
+      "destructible_hp": 2,
+      "pushable": false,
+      "animation": "",
+      "cracked_sprite": ""
+    }
+  },
+  "cofre_key1": {
+    "sprite_id": "cofre",
+    "name": "cofre llave",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false
+    }
+  },
+  "cofre_vacio": {
+    "sprite_id": "cofre_vacio",
+    "name": "cofre llave",
+    "behavior": "bloqueante",
+    "properties": {
+      "solid": true,
+      "destructible": false
+    }
+  },
+  "press_q": {
+    "sprite_id": "press_q",
+    "name": "press_q",
+    "behavior": "decorative",
+    "properties": {
+      "animation": "press_q"
+    }
+  },
+  "press_e": {
+    "sprite_id": "press_e",
+    "name": "press_e",
+    "behavior": "decorative",
+    "properties": {
+      "animation": "press_e"
+    }
+  }
+}

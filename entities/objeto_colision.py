@@ -1,0 +1,166 @@
+# entities/objeto_colision.py
+from configs import *
+
+
+class ObjetoColision:
+    """Clase base para todos los objetos con los que se puede colisionar"""
+
+    def __init__(self, x, y, ancho=TAMANO_CELDA, alto=TAMANO_CELDA, z=Z_MAPA_PRINCIPAL):
+        self.x = x
+        self.y = y
+        self.ancho = ancho
+        self.alto = alto
+        self.z = z
+        self.visible = True
+        self.activo = True
+        self.solid = True
+        self.properties = {}
+
+    def colisiona_con(self, cabeza_x, cabeza_y, z_jugador=0):
+        """Verifica si colisiona con una posición (cabeza de la serpiente)"""
+        if not self.activo or not self.visible:
+            return False
+        if not self.solid:
+            return False
+        if self.z != z_jugador:
+            return False
+        return (cabeza_x == self.x and cabeza_y == self.y)
+
+    def manejar_colision(self, snake, estado):
+        """Maneja la colisión - CADA OBJETO DEFINE SU PROPIO COMPORTAMIENTO"""
+        # Por defecto: no hace nada (debe ser sobrescrito)
+        pass
+
+    def dibujar(self, pantalla, offset_x=0, offset_y=0):
+        """Dibuja el objeto - Sobrescribir en clases hijas"""
+        pass
+
+
+class ObjetoBloqueante(ObjetoColision):
+    """Objeto que BLOQUEA el paso de la serpiente (ej: rocas)"""
+
+    def __init__(self, x, y, ancho=TAMANO_CELDA, alto=TAMANO_CELDA):
+        super().__init__(x, y, ancho, alto)
+        self.tipo = ""
+        self.rotura = 0
+
+    def colisiona_con(self, cabeza_x, cabeza_y, z_jugador=0):
+        if not self.activo or not self.visible:
+            return False
+        if not self.solid:
+            return False
+        return (cabeza_x == self.x and cabeza_y == self.y)
+
+    def es_obstaculo(self):
+        return self.activo
+
+    def get_rect(self):
+        if not self.activo:
+            return None
+        import pygame
+        return pygame.Rect(self.x, self.y, self.ancho, self.alto)
+
+    def golpear(self, snake=None, estado=None, damage=1, attack_type=""):
+        if not self.activo or not getattr(self, 'destructible', False):
+            return False
+        self.rotura += damage
+        hp = getattr(self, 'destructible_hp', 1) - damage
+        self.destructible_hp = hp
+        if estado:
+            estado.stack_manager.on_hit(self.x, self.y, self.z, damage=damage, attack_type=attack_type)
+        if hp <= 0:
+            self.activo = False
+            self.visible = False
+            if estado:
+                from systems.event_bus import EventoObjetoDestruido
+                estado.event_bus.publicar(EventoObjetoDestruido(self, (self.x, self.y), "bloqueante"))
+                estado.stack_manager.on_entity_destroyed(self.x, self.y, "bloqueante")
+                # Remove the grid tile so the ground underneath shows
+                gx = self.x // TAMANO_CELDA
+                gy = self.y // TAMANO_CELDA
+                estado.remove_tile_sprite(gx, gy, self.z)
+            return True
+        # Change to cracked sprite if configured
+        cracked = getattr(self, 'cracked_sprite', '')
+        if cracked and estado:
+            gx = self.x // TAMANO_CELDA
+            gy = self.y // TAMANO_CELDA
+            estado.replace_tile_sprite(gx, gy, cracked, self.z)
+            # Clear cracked_sprite so it only triggers once
+            self.cracked_sprite = ''
+        return False
+
+    def manejar_colision(self, snake, estado):
+        if not self.activo:
+            return
+
+        direccion = snake.direccion
+        nueva_x = self.x
+        nueva_y = self.y
+
+        if direccion == "ARRIBA":
+            nueva_y = self.y + TAMANO_CELDA
+        elif direccion == "ABAJO":
+            nueva_y = self.y - TAMANO_CELDA
+        elif direccion == "IZQUIERDA":
+            nueva_x = self.x + TAMANO_CELDA
+        elif direccion == "DERECHA":
+            nueva_x = self.x - TAMANO_CELDA
+
+        for obj in self._iter_chain_objects(estado):
+            if obj is not self and obj.activo and obj.x == nueva_x and obj.y == nueva_y:
+                if direccion == "ARRIBA":
+                    nueva_y += TAMANO_CELDA
+                elif direccion == "ABAJO":
+                    nueva_y -= TAMANO_CELDA
+                elif direccion == "IZQUIERDA":
+                    nueva_x += TAMANO_CELDA
+                elif direccion == "DERECHA":
+                    nueva_x -= TAMANO_CELDA
+                break
+
+        if snake.body:
+            dx = nueva_x - snake.body[0][0]
+            dy = nueva_y - snake.body[0][1]
+            for segmento in snake.body:
+                segmento[0] += dx
+                segmento[1] += dy
+
+        snake.estado_actual = estado
+        snake.enroscar(
+            posicion=snake.body[0],
+            duracion=20,
+            estado=estado
+        )
+        return "bloqueado"
+
+    def _iter_chain_objects(self, estado):
+        for coleccion in ("bloqueantes", "bloques_acero", "paredes"):
+            for obj in getattr(estado, coleccion, []):
+                if isinstance(obj, ObjetoBloqueante):
+                    yield obj
+
+
+class ObjetoPeligroso(ObjetoColision):
+    """Objeto que MATA a la serpiente (ej: paredes, puas, lava)"""
+
+    def __init__(self, x, y, ancho=TAMANO_CELDA, alto=TAMANO_CELDA, z=Z_MAPA_PRINCIPAL):
+        super().__init__(x, y, ancho, alto, z)
+
+    def colisiona_con(self, cabeza_x, cabeza_y, z_jugador=0):
+        if not self.activo or not self.visible:
+            return False
+        return (self.x <= cabeza_x < self.x + self.ancho and
+                self.y <= cabeza_y < self.y + self.alto)
+
+    def manejar_colision(self, snake, estado):
+        estado.game_over = True
+        estado.death_cause = f"Objeto peligroso ({type(self).__name__})"
+        from managers.colision_manager import mostrar_mensaje
+        mostrar_mensaje("¡Has muerto!", 60)
+        estado.particles.crear_explosion(
+            snake.body[0][0] + TAMANO_CELDA//2,
+            snake.body[0][1] + TAMANO_CELDA//2,
+            30, ROJO
+        )
+        return "mata"

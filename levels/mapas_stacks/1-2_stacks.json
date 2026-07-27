@@ -1,0 +1,387 @@
+{
+  "stacks": [
+    {
+      "pos": [
+        4,
+        17
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-1",
+                "exit_id": "exit1_2-1_1"
+              }
+            }
+          ],
+          "once": false
+        }
+      ]
+    },
+    {
+      "pos": [
+        59,
+        5
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        8,
+        19
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        5,
+        17
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit1_1-1_2"
+        }
+      ]
+    },
+    {
+      "pos": [
+        36,
+        5
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        12,
+        14
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        12,
+        15
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        12,
+        16
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        14,
+        16
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        1,
+        4
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        22,
+        18
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        11,
+        11
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "escamas",
+              "params": {
+                "operador": ">=",
+                "valor": 1
+              }
+            }
+          ],
+          "acciones": [],
+          "once": true,
+          "id": "hierba1_2-1"
+        }
+      ]
+    },
+    {
+      "pos": [
+        42,
+        12
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "escamas",
+              "params": {
+                "operador": ">=",
+                "valor": 1
+              }
+            }
+          ],
+          "acciones": [],
+          "once": true,
+          "id": "hierba1_2-1"
+        }
+      ]
+    },
+    {
+      "pos": [
+        32,
+        12
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": ""
+        }
+      ]
+    },
+    {
+      "pos": [
+        8,
+        5
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        35,
+        19
+      ],
+      "z": 0,
+      "eventos": []
+    },
+    {
+      "pos": [
+        31,
+        12
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [],
+          "acciones": [],
+          "once": false,
+          "id": "exit1_3-1_2"
+        }
+      ]
+    },
+    {
+      "pos": [
+        7,
+        4
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        1,
+        6
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        37,
+        20
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        36,
+        15
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        32,
+        12
+      ],
+      "z": 2,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "escamas",
+              "params": {
+                "operador": ">=",
+                "valor": 10
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Gate abierto"
+              }
+            },
+            {
+              "tipo": "replace_sprite",
+              "params": {
+                "sprite_id": "gate"
+              }
+            },
+            {
+              "tipo": "remove_escamas",
+              "params": {
+                "cantidad": 10
+              }
+            }
+          ],
+          "once": true,
+          "id": "abre_gate1_3"
+        },
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "escamas",
+              "params": {
+                "operador": "<",
+                "valor": 10
+              }
+            },
+            {
+              "tipo": "evaluar_evento",
+              "params": {
+                "evento_id": "abre_gate1_3",
+                "estado": "pendiente"
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "show_message",
+              "params": {
+                "mensaje": "Debes pagar 10 escamas"
+              }
+            }
+          ],
+          "once": false,
+          "id": "cerrado_gate1_2"
+        },
+        {
+          "trigger": "contact",
+          "condiciones": [
+            {
+              "tipo": "evaluar_evento",
+              "params": {
+                "evento_id": "abre_gate1_3",
+                "estado": "finalizado"
+              }
+            }
+          ],
+          "acciones": [
+            {
+              "tipo": "change_map",
+              "params": {
+                "nivel": "1-3",
+                "exit_id": "exit1_2-1_3"
+              }
+            }
+          ],
+          "once": false,
+          "id": "gate1_2-1_3"
+        }
+      ]
+    },
+    {
+      "pos": [
+        19,
+        11
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        1,
+        18
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        54,
+        12
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "boss_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "give_item",
+              "params": {
+                "item": "key_willow",
+                "cantidad": 1
+              }
+            }
+          ],
+          "once": true,
+          "id": ""
+        }
+      ]
+    },
+    {
+      "pos": [
+        49,
+        12
+      ],
+      "z": 1,
+      "eventos": []
+    }
+  ]
+}
