@@ -125,10 +125,6 @@
               }
             },
             {
-              "tipo": "despertar",
-              "params": {}
-            },
-            {
               "tipo": "auto_caminar",
               "params": {
                 "direccion": "DERECHA"
@@ -139,6 +135,14 @@
           "id": "ataque_hab_1"
         }
       ]
+    },
+    {
+      "pos": [
+        45,
+        33
+      ],
+      "z": 1,
+      "eventos": []
     }
   ]
 }

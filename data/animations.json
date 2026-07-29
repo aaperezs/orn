@@ -89,5 +89,16 @@
     "glow": {
       "enabled": false
     }
+  },
+  "anim_ea77fc": {
+    "frames": [],
+    "interval": 500
+  },
+  "close_eye": {
+    "frames": [],
+    "interval": 500,
+    "glow": {
+      "enabled": false
+    }
   }
 }

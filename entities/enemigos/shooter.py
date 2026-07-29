@@ -120,9 +120,15 @@ class Eldir(Iggy):
         centro = (x + TAMANO_CELDA // 2, y + TAMANO_CELDA // 2)
 
         from utils.sprite_manager import obtener as obtener_sprite
-        # Sprite: enemigo_shooter.png — Casco circular con visera y cuernos pequeños
-        # Artillero que dispara proyectiles (Eldir). Misma paleta que el melee
-        # para mantener unidad visual entre tipos de enemigos
+        from systems.animation import get_anim_sprite
+
+        if self.animation:
+            sprite_id = get_anim_sprite(self.animation) or "enemigo_shooter"
+            sprite = obtener_sprite(sprite_id)
+            if sprite:
+                pantalla.blit(sprite, (x, y))
+                return
+
         sprite = obtener_sprite("enemigo_shooter")
         if sprite:
             pantalla.blit(sprite, (x, y))

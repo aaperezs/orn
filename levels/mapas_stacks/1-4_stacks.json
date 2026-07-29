@@ -215,6 +215,12 @@
               "params": {
                 "ventana_id": "fin_mundo1"
               }
+            },
+            {
+              "tipo": "mostrar_ventana",
+              "params": {
+                "ventana_id": "main_menu"
+              }
             }
           ],
           "once": false,
@@ -238,6 +244,12 @@
               "tipo": "mostrar_ventana",
               "params": {
                 "ventana_id": "fin_mundo1"
+              }
+            },
+            {
+              "tipo": "mostrar_ventana",
+              "params": {
+                "ventana_id": "main_menu"
               }
             }
           ],
@@ -275,6 +287,30 @@
         30
       ],
       "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        36,
+        57
+      ],
+      "z": 1,
+      "eventos": []
+    },
+    {
+      "pos": [
+        39,
+        19
+      ],
+      "z": 2,
+      "eventos": []
+    },
+    {
+      "pos": [
+        23,
+        11
+      ],
+      "z": 2,
       "eventos": []
     }
   ]

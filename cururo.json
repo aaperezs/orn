@@ -3,6 +3,7 @@
   "id": "orm",
   "version": "1.0.0",
   "type": "game",
+  "category": "snake_rpg",
   "screens": {
     "enabled": true,
     "items": [
@@ -22,7 +23,7 @@
       },
       "main_menu": {
         "duration_ms": 0,
-        "enabled": false
+        "enabled": true
       },
       "prologue": {
         "duration_ms": 0,

@@ -23,6 +23,7 @@ class Iggy:
         self.x_inicial = x
         self.y_inicial = y
         self.rango = 100
+        self.animation = ""
 
     def _tile_colisiona(self, x, y, objetos):
         gx = x // TAMANO_CELDA
@@ -83,9 +84,15 @@ class Iggy:
         c = self.color
 
         from utils.sprite_manager import obtener as obtener_sprite
-        # Sprite: enemigo_melee.png — Casco vikingo trapezoidal con cuernos
-        # Enemigo de carga cuerpo a cuerpo (EnemyMelee). Al aturdirse (self.aturdido)
-        # se renderiza en gris (self.color = GRIS) en lugar de ROJO
+        from systems.animation import get_anim_sprite
+
+        if self.animation:
+            sprite_id = get_anim_sprite(self.animation) or "enemigo_melee"
+            sprite = obtener_sprite(sprite_id)
+            if sprite:
+                pantalla.blit(sprite, (x, y))
+                return
+
         sprite = obtener_sprite("enemigo_melee")
         if sprite:
             pantalla.blit(sprite, (x, y))

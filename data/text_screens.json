@@ -1,4 +1,13 @@
 {
+  "main_menu": {
+    "titulo": "Orm",
+    "font": "Arial",
+    "font_size": 26,
+    "char_speed": 2,
+    "lineas": [
+      "Presiona ENTER para comenzar tu viaje."
+    ]
+  },
   "prologue": {
     "titulo": "",
     "font": "Arial",

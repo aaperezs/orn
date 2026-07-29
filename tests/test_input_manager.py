@@ -111,10 +111,12 @@ def im(estado):
     def mostrar_mensaje(msg, t):
         mensajes.append((msg, t))
 
-    def usar_habilidad():
+    def mock_ejecutar_golpe():
         habilidad_usada[0] = True
 
-    manager = InputManager(estado, mostrar_mensaje, usar_habilidad)
+    estado.ejecutar_golpe_q = mock_ejecutar_golpe
+
+    manager = InputManager(estado, mostrar_mensaje)
     manager._mensajes = mensajes
     manager._habilidad_usada = habilidad_usada
     return manager

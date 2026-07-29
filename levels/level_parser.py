@@ -104,6 +104,9 @@ def _make_enemigo_melee(px, py, sprite_id, element_data, z=0):
     config = get_enemigo_config("melee", patron)
     entity = EnemyMelee(px, py, config["patron"], config["velocidad"])
     entity.z = z
+    anim = props.get("animation", "")
+    if anim:
+        entity.animation = anim
     return entity
 
 
@@ -119,6 +122,9 @@ def _make_eldir(px, py, sprite_id, element_data, z=0):
         velocidad_proyectil=config["velocidad_proyectil"]
     )
     entity.z = z
+    anim = props.get("animation", "")
+    if anim:
+        entity.animation = anim
     return entity
 
 

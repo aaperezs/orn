@@ -47,10 +47,9 @@ class InputManager:
         pygame.K_d: "TRADE_BORROW",
     }
 
-    def __init__(self, estado, mostrar_mensaje, usar_habilidad_golpe):
+    def __init__(self, estado, mostrar_mensaje):
         self.estado = estado
         self.mostrar_mensaje = mostrar_mensaje
-        self.usar_habilidad = usar_habilidad_golpe
         self._action_map = dict(self._DEFAULT_MAP)
 
     def rebind(self, key, action):
@@ -185,7 +184,7 @@ class InputManager:
         if action == "INTERACT":
             self._interact()
         elif action == "USE_SKILL":
-            self.usar_habilidad()
+            self.estado.ejecutar_golpe_q()
         elif action == "NEXT_SKILL":
             self._cycle_skill()
         elif action == "TOGGLE_PAUSE":

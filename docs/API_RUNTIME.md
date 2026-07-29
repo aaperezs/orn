@@ -183,6 +183,12 @@ Usado internamente por el motor. Los scripts importan directamente los módulos 
 Los behaviors (comportamientos) se definen en `data/behaviors.json` y se editan desde
 Cururo Editor > Herramientas > Comportamientos.
 
+### Eventos y capas Z
+
+Los eventos (stacks) se procesan **independientemente de la capa Z** del jugador. Si hay un
+stack en una celda, se dispara sin importar si está en Z=0, Z=1, Z=2, etc. No es necesario
+que el jugador esté en la misma Z que el evento.
+
 ### Acción `run_script` en eventos
 
 Los stacks de mapa pueden ejecutar funciones Python del proyecto:

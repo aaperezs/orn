@@ -154,9 +154,10 @@
     "behavior": "enemigo_melee",
     "properties": {
       "solid": true,
-      "damage_type": "mata",
+      "damage_type": "danio",
       "destructible": true,
-      "patron": "vertical"
+      "patron": "vertical",
+      "drops": []
     }
   },
   "enemigo_melee_h": {

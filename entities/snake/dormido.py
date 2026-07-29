@@ -31,7 +31,8 @@ class DormidoMixin:
                 target = len(self.segmentos_guardados)
                 current = len(self.body)
                 if current < target:
-                    self.crecer(target - current)
+                    diff = target - current
+                    self.crecer(diff)
                 self.segmentos_guardados = []
             self.etapa = 0
             return True

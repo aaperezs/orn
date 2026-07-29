@@ -4,6 +4,7 @@ import sys
 
 import pygame
 
+from configs import MOSTRAR_LOGS
 from configs.constants import TAMANO_CELDA
 from configs.game import VELOCIDAD_BASE
 from repositories.repositorio_objetos import RepositorioObjetos
@@ -22,7 +23,6 @@ class StackManager:
         self._cola_acciones = []  # Acciones pendientes tras esperar
         self._cola_ctx = (0, 0, 0)  # (x, y, z) contexto de la cola
         self._bloqueo_por = None  # None, "timer", "dialogo", "ventana"
-        self.fn_ataque = None     # Referencia a usar_habilidad_golpe desde main.py
         self._auto_direccion = None  # Dirección para auto_caminar
 
     def load_stacks(self, nivel_id):
@@ -157,7 +157,6 @@ class StackManager:
             return
         gx = x // TAMANO_CELDA
         gy = y // TAMANO_CELDA
-        # Find all stacks at (gx, gy) across all z-layers
         stacks_here = [(k, v) for k, v in self._stacks.items()
                        if k[0] == gx and k[1] == gy]
         if not stacks_here:
@@ -170,27 +169,23 @@ class StackManager:
                 if ev.get("trigger") == trigger:
                     print(f"[EVENTO] stack ({gx},{gy}) Z={z_layer} trigger={trigger} condiciones={len(ev.get('condiciones',[]))}")
                     if self._check_conditions(ev.get("condiciones", [])):
-                        self._auto_direccion = None  # pausar auto_caminar al iniciar nueva cadena
+                        self._auto_direccion = None
                         print(f"[EVENTO] condiciones OK, ejecutando {len(ev.get('acciones',[]))} accion(es)")
                         self._ejecutar_acciones(ev.get("acciones", []), gx * TAMANO_CELDA, gy * TAMANO_CELDA, z_layer)
-                        # Mark event as finalized only if it has once=True
                         eid = ev.get("id", "")
-                        if eid and ev.get("once", False):
+                        actions = [a.get("tipo") for a in ev.get("acciones", [])]
+                        auto_consume = "remove_sprite" in actions
+                        if eid and (ev.get("once", False) or auto_consume):
                             self._event_states[eid] = "finalizado"
-                            print(f"[EVENTO] estado '{eid}' -> finalizado (once)")
                             self._check_event_triggers(eid)
-                        elif eid and not ev.get("once", False):
-                            print(f"[EVENTO] estado '{eid}' NO se marca finalizado (once=false)")
-                        if ev.get("once", False):
+                        if ev.get("once", False) or auto_consume:
                             eventos_removed.append(ev)
                     else:
                         print("[EVENTO] condiciones NO cumplidas")
-            # Remove events marked as once
             for ev in eventos_removed:
                 eventos.remove(ev)
             if eventos_removed:
-                print(f"[EVENTO] {len(eventos_removed)} evento(s) eliminados (once=True). Eventos restantes: {len(eventos)}")
-            # Clean up empty stacks
+                print(f"[EVENTO] {len(eventos_removed)} evento(s) eliminados (once=True o remove_sprite). Eventos restantes: {len(eventos)}")
             if not eventos:
                 del self._stacks[key]
                 print(f"[EVENTO] stack ({gx},{gy}) Z={z_layer} eliminado (sin eventos)")
@@ -200,7 +195,8 @@ class StackManager:
         gx = x // TAMANO_CELDA
         gy = y // TAMANO_CELDA
         stacks_here = [(k, v) for k, v in self._stacks.items()
-                       if k[0] == gx and k[1] == gy]
+                       if k[0] == gx and k[1] == gy
+                       and k[2] == z]
         for key, stack in stacks_here:
             z_layer = key[2]
             eventos = stack.get("eventos", [])
@@ -211,10 +207,12 @@ class StackManager:
                     if self._check_conditions(ev.get("condiciones", []), extra):
                         self._ejecutar_acciones(ev.get("acciones", []), gx * TAMANO_CELDA, gy * TAMANO_CELDA, z_layer)
                         eid = ev.get("id", "")
-                        if eid and ev.get("once", False):
+                        actions = [a.get("tipo") for a in ev.get("acciones", [])]
+                        auto_consume = "remove_sprite" in actions
+                        if eid and (ev.get("once", False) or auto_consume):
                             self._event_states[eid] = "finalizado"
                             self._check_event_triggers(eid)
-                        if ev.get("once", False):
+                        if ev.get("once", False) or auto_consume:
                             eventos_removed.append(ev)
             for ev in eventos_removed:
                 eventos.remove(ev)
@@ -277,11 +275,15 @@ class StackManager:
             if not eventos:
                 del self._stacks[key]
 
-    def on_entity_destroyed(self, x, y, entidad_tipo):
-        self.process_events(x, y, "contact")
+    def on_entity_destroyed(self, x, y, entidad_tipo, z=None):
+        if z is None and hasattr(self.estado, "snake"):
+            z = self.estado.snake.z
+        self.process_events(x, y, "contact", z)
 
-    def on_interact(self, x, y, entidad_tipo):
-        self.process_events(x, y, "interact")
+    def on_interact(self, x, y, entidad_tipo, z=None):
+        if z is None and hasattr(self.estado, "snake"):
+            z = self.estado.snake.z
+        self.process_events(x, y, "interact", z)
 
     def _check_conditions(self, condiciones, extra=None):
         extra = extra or {}
@@ -579,6 +581,10 @@ class StackManager:
                 self._bloqueo_por = "ventana"
                 return True
 
+        elif accion == "fin_demo":
+            estado.volver_a_menu = True
+            estado.corriendo = False
+
         elif accion == "iniciar_demo":
             demo_id = params.get("demo_id", "")
             if demo_id:
@@ -606,7 +612,7 @@ class StackManager:
                         elif direccion == "ABAJO":   dy = TAMANO_CELDA
                         elif direccion == "IZQUIERDA": dx = -TAMANO_CELDA
                         elif direccion == "DERECHA":  dx = TAMANO_CELDA
-                        estado.stack_manager.process_events(cabeza[0] + dx, cabeza[1] + dy, "interact")
+                        estado.stack_manager.process_events(cabeza[0] + dx, cabeza[1] + dy, "interact", estado.snake.z)
 
         elif accion == "avanzar":
             direccion = params.get("direccion", "")
@@ -623,14 +629,13 @@ class StackManager:
 
         elif accion == "despertar":
             if hasattr(estado, "snake"):
-                estado.snake.dormido = False
-                estado.snake.enroscado = False
-                estado.snake.etapa = 0
+                estado.snake.despertar()
 
         elif accion == "accion_botton":
             tecla = params.get("tecla", "").upper()
-            if tecla == "Q" and self.fn_ataque:
-                self.fn_ataque()
+            if MOSTRAR_LOGS: print(f"[BOTON] tecla={tecla}")
+            if tecla == "Q":
+                self.estado.ejecutar_golpe_q()
 
         elif accion == "esperar":
             segundos = float(params.get("segundos", 1))

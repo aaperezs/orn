@@ -49,21 +49,25 @@ class SistemaHabilidades:
     def usar_habilidad(self):
         """Usa la habilidad equipada - RETORNA el efecto"""
         if not self.habilidad_equipada:
+            if MOSTRAR_LOGS: print(f"[HAB] FALLO: habilidad_equipada = None (inventario={self.inventario})")
             return None
 
         habilidad = self.habilidades[self.habilidad_equipada]
 
-        # La habilidad BASE no se puede usar (no gasta PP)
         if habilidad["efecto"] == "base":
+            if MOSTRAR_LOGS: print(f"[HAB] FALLO: efecto='base' (hid={self.habilidad_equipada})")
             return None
 
         if not habilidad["desbloqueada"]:
+            if MOSTRAR_LOGS: print(f"[HAB] FALLO: {self.habilidad_equipada} no desbloqueada")
             return None
 
         if habilidad["pp_actual"] <= 0:
+            if MOSTRAR_LOGS: print(f"[HAB] FALLO: {self.habilidad_equipada} PP=0")
             return None
 
         habilidad["pp_actual"] -= 1
+        if MOSTRAR_LOGS: print(f"[HAB] OK: {self.habilidad_equipada} PP restante={habilidad['pp_actual']}")
         return habilidad["efecto"]
 
     def recargar_pp(self, hid=None, cantidad=1):

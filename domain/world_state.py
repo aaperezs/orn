@@ -45,6 +45,12 @@ class WorldState:
         self.bloques_acero = nivel.get('bloques_acero', [])
         self.zona_boss = nivel.get('zona_boss', None)
         self.arena_paredes = []
+
+        # Limpiar proyectiles de visitas previas (niveles cacheados con instancias reusadas)
+        for enemigo in nivel.get('enemigos', []):
+            if hasattr(enemigo, 'proyectiles'):
+                enemigo.proyectiles.clear()
+
         self.enemigos = nivel['enemigos']
         self.zonas_restringidas = nivel.get('zonas_restringidas', [])
         self.suelos = nivel.get('suelos', [])

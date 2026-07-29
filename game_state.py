@@ -15,6 +15,23 @@ from systems.particles import ParticleSystem
 from systems.stack_manager import StackManager
 from systems.text_screen_player import TextScreenPlayer
 
+import pygame
+
+
+def _celdas_delante(cabeza, direccion):
+    """Devuelve las 3 posiciones de celda en la direccion de la cabeza (en abanico)"""
+    cx, cy = cabeza
+    perp = []
+    if direccion in ("ARRIBA", "ABAJO"):
+        dy = -TAMANO_CELDA if direccion == "ARRIBA" else TAMANO_CELDA
+        for px in (-TAMANO_CELDA, 0, TAMANO_CELDA):
+            perp.append((cx + px, cy + dy))
+    else:
+        dx = -TAMANO_CELDA if direccion == "IZQUIERDA" else TAMANO_CELDA
+        for py in (-TAMANO_CELDA, 0, TAMANO_CELDA):
+            perp.append((cx + dx, cy + py))
+    return perp
+
 
 class GameState:
     """Application layer: orchestrates SnakeContext + WorldState + infrastructure systems."""
@@ -53,6 +70,7 @@ class GameState:
         self._jefe_derrotado = False
         self.death_cause = None
         self.corriendo = True
+        self.volver_a_menu = False
         self.pausa = False
         self.game_over = False
         self.mostrando_trueque = False
@@ -250,3 +268,69 @@ class GameState:
     def reiniciar(self):
         self.__init__()
         print("¡Juego reiniciado!")
+
+    def ejecutar_golpe_q(self):
+        """Ejecuta la habilidad activa equipada (Q)"""
+        efecto = self.habilidades.usar_habilidad()
+        if not efecto or efecto == "base":
+            if MOSTRAR_LOGS: print(f"[GOLPE] Sin efecto ({efecto}), saltando animacion")
+            return
+
+        cabeza = self.snake.get_cabeza()
+        if not cabeza:
+            if MOSTRAR_LOGS: print(f"[GOLPE] Sin cabeza de serpiente")
+            return
+
+        direccion = self.snake.direccion
+        if MOSTRAR_LOGS: print(f"[GOLPE] efecto={efecto} cabeza=({cabeza[0]},{cabeza[1]}) dir={direccion}")
+
+        # --- GOLPE DE CABEZA ---
+        if efecto == "golpe":
+            dx = dy = 0
+            if direccion == "ARRIBA": dy = -TAMANO_CELDA
+            elif direccion == "ABAJO": dy = TAMANO_CELDA
+            elif direccion == "IZQUIERDA": dx = -TAMANO_CELDA
+            elif direccion == "DERECHA": dx = TAMANO_CELDA
+
+            golpe_x, golpe_y = cabeza[0] + dx, cabeza[1] + dy
+            golpe_rect = pygame.Rect(golpe_x, golpe_y, TAMANO_CELDA, TAMANO_CELDA)
+            cabeza_rect = pygame.Rect(cabeza[0], cabeza[1], TAMANO_CELDA, TAMANO_CELDA)
+            self.particles.crear_explosion(golpe_x + TAMANO_CELDA//2, golpe_y + TAMANO_CELDA//2, 10, NARANJA)
+
+            entidades = list(self.bloqueantes) + list(self.bloques_acero)
+            if MOSTRAR_LOGS: print(f"[GOLPE] buscando entidades ({len(entidades)} disponibles)")
+            for ent in entidades[:]:
+                if not ent.activo:
+                    continue
+                rect = ent.get_rect()
+                if rect and (golpe_rect.colliderect(rect) or cabeza_rect.colliderect(rect)):
+                    if MOSTRAR_LOGS: print(f"[GOLPE] HIT ent x={ent.x} y={ent.y} tipo={type(ent).__name__}")
+                    r = ent.golpear(snake=self.snake, estado=self, damage=1, attack_type="golpe")
+                    if MOSTRAR_LOGS: print(f"[GOLPE] golpear() retorno={r}")
+                    if r:
+                        self.particles.crear_explosion(ent.x + TAMANO_CELDA//2, ent.y + TAMANO_CELDA//2, 15, GRIS)
+                        if ent in self.bloqueantes:
+                            self.bloqueantes.remove(ent)
+                            if MOSTRAR_LOGS: print(f"[GOLPE] ent removido de bloqueantes")
+                        elif ent in self.bloques_acero:
+                            self.bloques_acero.remove(ent)
+                            if MOSTRAR_LOGS: print(f"[GOLPE] ent removido de bloques_acero")
+            if MOSTRAR_LOGS: print(f"[GOLPE] bloqueantes restantes={len(self.bloqueantes)}")
+
+        # --- COLA LATIGO ---
+        elif efecto == "latigo":
+            celdas = _celdas_delante(cabeza, direccion)
+            cortadas = 0
+            for gx, gy in celdas:
+                for g in self.hierba_alta[:]:
+                    if g.activo and g.x == gx and g.y == gy:
+                        g.activo = False
+                        g.visible = False
+                        self.particles.crear_explosion(gx + TAMANO_CELDA//2, gy + TAMANO_CELDA//2, 8, (100, 180, 50))
+                        from systems.event_bus import EventoObjetoDestruido
+                        self.event_bus.publicar(EventoObjetoDestruido(g, (gx, gy), "hierba"))
+                        self.stack_manager.on_entity_destroyed(gx, gy, "hierba_alta")
+                        cortadas += 1
+            if cortadas > 0:
+                self.mensaje_temporal = f"¡Hierba cortada! ({cortadas})"
+                self.tiempo_mensaje = 20

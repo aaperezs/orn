@@ -34,12 +34,19 @@ pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("ORM - El Vástago del Mundo")
 reloj = pygame.time.Clock()
 
-estado = GameState()
-ui = UI()
-move_accumulator = 0.0
+# Cargar config de pantallas una vez (splash, title, menu, prologue)
+_SCREENS_CFG = {}
+if not _MODO_TEST:
+    import json
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "cururo.json"), encoding="utf-8") as f:
+            manifest = json.load(f)
+        _SCREENS_CFG = manifest.get("screens", {})
+    except Exception:
+        pass
 
 # ============================================
-# FUNCIONES AUXILIARES
+# FUNCIONES AUXILIARES (definidas una vez, usan `estado` como global)
 # ============================================
 
 def mostrar_mensaje(texto, duracion=60):
@@ -119,115 +126,7 @@ def recoger_segmentos():
         elif not segmento.esta_vivo() and not segmento.recogido:
             estado.segmentos_perdidos.remove(segmento)
 
-def _celdas_delante(cabeza, direccion):
-    """Devuelve las 3 posiciones de celda en la direccion de la cabeza (en abanico)"""
-    cx, cy = cabeza
-    perp = []
-    if direccion in ("ARRIBA", "ABAJO"):
-        dy = -TAMANO_CELDA if direccion == "ARRIBA" else TAMANO_CELDA
-        for px in (-TAMANO_CELDA, 0, TAMANO_CELDA):
-            perp.append((cx + px, cy + dy))
-    else:
-        dx = -TAMANO_CELDA if direccion == "IZQUIERDA" else TAMANO_CELDA
-        for py in (-TAMANO_CELDA, 0, TAMANO_CELDA):
-            perp.append((cx + dx, cy + py))
-    return perp
 
-def usar_habilidad_golpe():
-    """Ejecuta la habilidad activa equipada"""
-    efecto = estado.habilidades.usar_habilidad()
-    if not efecto or efecto == "base":
-        return
-
-    cabeza = estado.snake.get_cabeza()
-    if not cabeza:
-        return
-
-    direccion = estado.snake.direccion
-
-    # --- GOLPE DE CABEZA ---
-    if efecto == "golpe":
-        dx = dy = 0
-        if direccion == "ARRIBA": dy = -TAMANO_CELDA
-        elif direccion == "ABAJO": dy = TAMANO_CELDA
-        elif direccion == "IZQUIERDA": dx = -TAMANO_CELDA
-        elif direccion == "DERECHA": dx = TAMANO_CELDA
-
-        golpe_x, golpe_y = cabeza[0] + dx, cabeza[1] + dy
-        golpe_rect = pygame.Rect(golpe_x, golpe_y, TAMANO_CELDA, TAMANO_CELDA)
-        cabeza_rect = pygame.Rect(cabeza[0], cabeza[1], TAMANO_CELDA, TAMANO_CELDA)
-        estado.particles.crear_explosion(golpe_x + TAMANO_CELDA//2, golpe_y + TAMANO_CELDA//2, 10, NARANJA)
-
-        entidades = list(estado.bloqueantes) + list(estado.bloques_acero)
-        for ent in entidades[:]:
-            if not ent.activo:
-                continue
-            rect = ent.get_rect()
-            if rect and (golpe_rect.colliderect(rect) or cabeza_rect.colliderect(rect)):
-                r = ent.golpear(snake=estado.snake, estado=estado, damage=1, attack_type="golpe")
-                if r:
-                    estado.particles.crear_explosion(ent.x + TAMANO_CELDA//2, ent.y + TAMANO_CELDA//2, 15, GRIS)
-                    if ent in estado.bloqueantes:
-                        estado.bloqueantes.remove(ent)
-                    elif ent in estado.bloques_acero:
-                        estado.bloques_acero.remove(ent)
-
-    # --- COLA LATIGO ---
-    elif efecto == "latigo":
-        celdas = _celdas_delante(cabeza, direccion)
-        cortadas = 0
-        for gx, gy in celdas:
-            for g in estado.hierba_alta[:]:
-                if g.activo and g.x == gx and g.y == gy:
-                    g.activo = False
-                    g.visible = False
-                    estado.particles.crear_explosion(gx + TAMANO_CELDA//2, gy + TAMANO_CELDA//2, 8, (100, 180, 50))
-                    from systems.event_bus import EventoObjetoDestruido
-                    estado.event_bus.publicar(EventoObjetoDestruido(g, (gx, gy), "hierba"))
-                    estado.stack_manager.on_entity_destroyed(gx, gy, "hierba_alta")
-                    cortadas += 1
-        if cortadas > 0:
-            mostrar_mensaje(f"¡Hierba cortada! ({cortadas})", 20)
-
-# ============================================
-# INICIALIZAR MANAGERS
-# ============================================
-
-combate_manager = CombateManager(estado, mostrar_mensaje, perder_segmentos)
-comida_manager = ComidaManager(estado)
-colision_manager = ColisionManager(estado, perder_segmentos, mostrar_mensaje)
-event_handler = InputManager(estado, mostrar_mensaje, usar_habilidad_golpe)
-estado.stack_manager.fn_ataque = usar_habilidad_golpe
-
-# ============================================
-# SUSCRIPTORES DEL BUS DE EVENTOS
-# ============================================
-
-from repositories import RepositorioBotin
-
-_repo_botin = RepositorioBotin()
-
-def _on_objeto_destruido(evento):
-    """Cuando un objeto se destruye, puede dropear minerales"""
-    if evento.tipo != "bloqueante":
-        return
-    evento_id, config = _repo_botin.obtener_drop_aleatorio()
-    if evento_id and config:
-        tipo = config.get("tipo")
-        nombre = config.get("nombre", evento_id)
-        icono = config.get("icono", "")
-        if tipo == "mineral":
-            estado.inventario.agregar_item(evento_id, 1)
-            mostrar_mensaje(f"{icono} ¡Encontraste {nombre}!", 60)
-        elif tipo == "gema":
-            estado.inventario.agregar_item(evento_id, 1)
-            estado.habilidades.recargar_pp(cantidad=5)
-            mostrar_mensaje(f"{icono} ¡{nombre}! PP recuperados!", 60)
-        elif tipo == "escama":
-            estado.snake.crecer(1)
-            mostrar_mensaje(f"{icono} ¡{nombre}! +1 segmento!", 60)
-
-estado.event_bus.suscribir(EventoObjetoDestruido, _on_objeto_destruido)
 
 # ============================================
 # FUNCIÓN DE DIBUJADO
@@ -387,163 +286,197 @@ def dibujar():
         pantalla.blit(overlay, (0, 0))
 
 # ============================================
-# SISTEMA DE PANTALLAS (splash, título, menú, prólogo)
+# BUCLE PRINCIPAL (outer: menu → juego → menu ...)
 # ============================================
 
-if SCREENS_ENABLED and not _MODO_TEST:
-    from systems.screen_manager import ScreenManager
-    screens_cfg = getattr(estado, "_screens_config", None)
-    if screens_cfg is None:
-        import json
-        try:
-            with open(os.path.join(os.path.dirname(__file__), "cururo.json"), encoding="utf-8") as f:
-                manifest = json.load(f)
-            screens_cfg = manifest.get("screens", {})
-        except Exception:
-            screens_cfg = {}
-    sm = ScreenManager(pantalla, screens_cfg)
-    sm.run()
+while True:
+    estado = GameState()
+    ui = UI()
+    move_accumulator = 0.0
 
-# ============================================
-# BUCLE PRINCIPAL
-# ============================================
+    # ── Managers ──
+    combate_manager = CombateManager(estado, mostrar_mensaje, perder_segmentos)
+    comida_manager = ComidaManager(estado)
+    colision_manager = ColisionManager(estado, perder_segmentos, mostrar_mensaje)
+    event_handler = InputManager(estado, mostrar_mensaje)
 
-while estado.corriendo:
-    # --- PAUSA ---
-    if estado.pausa:
-        ui.mostrar_pausa(pantalla)
-        pygame.display.flip()
-        reloj.tick(10)
-        continue
+    # ── Botín al destruir objetos ──
+    from repositories import RepositorioBotin
 
-    # --- FORJA ---
-    if estado.mostrando_forja:
-        estado.sistema_forja.actualizar()
-        dibujar()
-        estado.sistema_forja.dibujar(pantalla)
-        pygame.display.flip()
-        reloj.tick(10)
-        continue
+    def _on_objeto_destruido(evento):
+        """Cuando un objeto se destruye, puede dropear minerales"""
+        if evento.tipo != "bloqueante":
+            return
+        _repo_botin = RepositorioBotin()
+        evento_id, config = _repo_botin.obtener_drop_aleatorio()
+        if evento_id and config:
+            tipo = config.get("tipo")
+            nombre = config.get("nombre", evento_id)
+            icono = config.get("icono", "")
+            if tipo == "mineral":
+                estado.inventario.agregar_item(evento_id, 1)
+                mostrar_mensaje(f"{icono} ¡Encontraste {nombre}!", 60)
+            elif tipo == "gema":
+                estado.inventario.agregar_item(evento_id, 1)
+                estado.habilidades.recargar_pp(cantidad=5)
+                mostrar_mensaje(f"{icono} ¡{nombre}! PP recuperados!", 60)
+            elif tipo == "escama":
+                estado.snake.crecer(1)
+                mostrar_mensaje(f"{icono} ¡{nombre}! +1 segmento!", 60)
 
-    # --- MENÚS ---
-    if estado.mostrando_trueque:
-        ui.mostrar_menu_trueque(pantalla, estado.snake)
-        continue
+    estado.event_bus.suscribir(EventoObjetoDestruido, _on_objeto_destruido)
 
-    if estado.mostrando_inventario:
-        ui.mostrar_inventario(pantalla, estado.habilidades)
-        continue
+    # ── Pantallas (splash, título, menú, prólogo) ──
+    if SCREENS_ENABLED and not _MODO_TEST:
+        from systems.screen_manager import ScreenManager
+        sm = ScreenManager(pantalla, _SCREENS_CFG)
+        sm.run()
 
-    # --- GAME OVER ---
-    if estado.game_over:
-        if estado.death_cause:
-            print(f"[MUERTE] {estado.death_cause}")
-        ui.mostrar_game_over(pantalla, estado.snake, estado)
-        pygame.display.flip()
-        reloj.tick(10)
-        continue
+    # ── Game loop ──
+    while estado.corriendo:
+        # --- INPUT (siempre, incluso durante game over / dialogos) ---
+        event_handler.process_events()
 
-    # --- DIALOGO (pausa el juego) ---
-    if estado.dialogo.activo:
-        estado.dialogo.actualizar()
+        # --- PAUSA ---
+        if estado.pausa:
+            ui.mostrar_pausa(pantalla)
+            pygame.display.flip()
+            reloj.tick(10)
+            continue
+
+        # --- FORJA ---
+        if estado.mostrando_forja:
+            estado.sistema_forja.actualizar()
+            dibujar()
+            estado.sistema_forja.dibujar(pantalla)
+            pygame.display.flip()
+            reloj.tick(10)
+            continue
+
+        # --- MENÚS ---
+        if estado.mostrando_trueque:
+            ui.mostrar_menu_trueque(pantalla, estado.snake)
+            continue
+
+        if estado.mostrando_inventario:
+            ui.mostrar_inventario(pantalla, estado.habilidades)
+            continue
+
+        # --- GAME OVER ---
+        if estado.game_over:
+            if estado.death_cause:
+                print(f"[MUERTE] {estado.death_cause}")
+                estado.death_cause = ""
+            ui.mostrar_game_over(pantalla, estado.snake, estado)
+            pygame.display.flip()
+            reloj.tick(10)
+            continue
+
+        # --- DIALOGO (pausa el juego) ---
+        if estado.dialogo.activo:
+            estado.dialogo.actualizar()
+            estado.stack_manager.actualizar(estado)
+            dibujar()
+            estado.dialogo.dibujar(pantalla)
+            pygame.display.flip()
+            reloj.tick(10)
+            continue
+
+        # --- VENTANA (pantalla completa tipo cutscene) ---
+        if estado.ventana.activo:
+            estado.ventana.actualizar()
+            estado.stack_manager.actualizar(estado)
+            estado.ventana.dibujar(pantalla)
+            pygame.display.flip()
+            reloj.tick(10)
+            continue
+
+        # --- MOVIMIENTO (FPS fijo, movimiento por acumulador) ---
+        move_accumulator += estado.get_speed_multiplier()
+        movio = False
+        while move_accumulator >= 1.0:
+            estado.snake.mover(desplazar=True)
+            move_accumulator -= 1.0
+            movio = True
+        if not movio:
+            estado.snake.mover(desplazar=False)
+
+        # Actualizar cooldown de enroscamiento (previene bucle infinito roca-pared)
+        if hasattr(estado.snake, '_no_enroscar_hasta') and estado.snake._no_enroscar_hasta > 0:
+            estado.snake._no_enroscar_hasta -= 1
+
+        # --- PROCESAR ACCIONES DE EVENTOS (esperar, comando_automatico, etc.) ---
         estado.stack_manager.actualizar(estado)
+
+        # --- CÁMARA ---
+        cabeza = estado.snake.get_cabeza()
+        if cabeza:
+            estado.camera.seguir(cabeza)
+            estado.camera.actualizar()
+
+        # --- CAMBIO DE NIVEL ---
+        if estado.cambiando_nivel:
+            destino = estado.gate_destino
+            estado.cambiar_nivel(destino)
+            continue
+
+        # --- COMIDA ---
+        comida_manager.actualizar()
+
+        # --- COLISIONES ---
+        if colision_manager.verificar_colisiones():
+            continue
+        if colision_manager.verificar_autocolision():
+            continue
+        colision_manager.verificar_gate()
+        colision_manager.verificar_avance_libre()
+
+        # --- COMBATE ---
+        if combate_manager.actualizar_enemigos():
+            continue
+        if combate_manager.actualizar_jefe():
+            continue
+
+        # --- EFECTOS DE EQUIPO ---
+        estado.inventario.aplicar_todos_efectos(estado.snake, estado)
+
+        # Regeneración de PP si hay objeto equipado que lo conceda
+        for slot, obj in estado.inventario.equipo.items():
+            for efecto in obj.efectos:
+                if efecto.get("tipo") == "regeneracion_pp":
+                    estado.habilidades.recargar_pp(cantidad=0.01)
+
+        # --- SEGMENTOS PERDIDOS ---
+        recoger_segmentos()
+        for segmento in estado.segmentos_perdidos[:]:
+            segmento.actualizar()
+            if not segmento.esta_vivo() and not segmento.recogido:
+                estado.segmentos_perdidos.remove(segmento)
+
+        # --- TEXTOS FLOTANTES ---
+        estado.text_service.update()
+        for tf in estado.textos_flotantes[:]:
+            tf["timer"] -= 1
+            tf["y"] -= 1
+            if tf["timer"] <= 0:
+                estado.textos_flotantes.remove(tf)
+
+        # --- PARTÍCULAS ---
+        estado.particles.actualizar()
+
+        # --- MENSAJE TEMPORAL ---
+        if estado.tiempo_mensaje > 0:
+            estado.tiempo_mensaje -= 1
+            if estado.tiempo_mensaje == 0:
+                estado.mensaje_temporal = ""
+
+        # --- DIBUJADO ---
         dibujar()
-        estado.dialogo.dibujar(pantalla)
         pygame.display.flip()
-        reloj.tick(10)
-        continue
+        reloj.tick(VELOCIDAD_DEUDA if estado.snake.tiene_deuda() else VELOCIDAD_BASE)
 
-    # --- VENTANA (pantalla completa tipo cutscene) ---
-    if estado.ventana.activo:
-        estado.ventana.actualizar()
-        estado.stack_manager.actualizar(estado)
-        estado.ventana.dibujar(pantalla)
-        pygame.display.flip()
-        reloj.tick(10)
-        continue
-
-    # --- MOVIMIENTO (FPS fijo, movimiento por acumulador) ---
-    move_accumulator += estado.get_speed_multiplier()
-    movio = False
-    while move_accumulator >= 1.0:
-        estado.snake.mover(desplazar=True)
-        move_accumulator -= 1.0
-        movio = True
-    if not movio:
-        estado.snake.mover(desplazar=False)
-
-    # Actualizar cooldown de enroscamiento (previene bucle infinito roca-pared)
-    if hasattr(estado.snake, '_no_enroscar_hasta') and estado.snake._no_enroscar_hasta > 0:
-        estado.snake._no_enroscar_hasta -= 1
-
-    # --- PROCESAR ACCIONES DE EVENTOS (esperar, comando_automatico, etc.) ---
-    estado.stack_manager.actualizar(estado)
-
-    # --- CÁMARA ---
-    cabeza = estado.snake.get_cabeza()
-    if cabeza:
-        estado.camera.seguir(cabeza)
-        estado.camera.actualizar()
-
-    # --- CAMBIO DE NIVEL ---
-    if estado.cambiando_nivel:
-        destino = estado.gate_destino
-        estado.cambiar_nivel(destino)
-        continue
-
-    # --- COMIDA ---
-    comida_manager.actualizar()
-
-    # --- COLISIONES ---
-    if colision_manager.verificar_colisiones():
-        continue
-    if colision_manager.verificar_autocolision():
-        continue
-    colision_manager.verificar_gate()
-    colision_manager.verificar_avance_libre()
-
-    # --- COMBATE ---
-    if combate_manager.actualizar_enemigos():
-        continue
-    if combate_manager.actualizar_jefe():
-        continue
-
-    # --- EFECTOS DE EQUIPO ---
-    estado.inventario.aplicar_todos_efectos(estado.snake, estado)
-
-    # Regeneración de PP si hay objeto equipado que lo conceda
-    for slot, obj in estado.inventario.equipo.items():
-        for efecto in obj.efectos:
-            if efecto.get("tipo") == "regeneracion_pp":
-                estado.habilidades.recargar_pp(cantidad=0.01)
-
-    # --- SEGMENTOS PERDIDOS ---
-    recoger_segmentos()
-    for segmento in estado.segmentos_perdidos[:]:
-        segmento.actualizar()
-        if not segmento.esta_vivo() and not segmento.recogido:
-            estado.segmentos_perdidos.remove(segmento)
-
-    # --- TEXTOS FLOTANTES ---
-    estado.text_service.update()
-    for tf in estado.textos_flotantes[:]:
-        tf["timer"] -= 1
-        tf["y"] -= 1
-        if tf["timer"] <= 0:
-            estado.textos_flotantes.remove(tf)
-
-    # --- PARTÍCULAS ---
-    estado.particles.actualizar()
-
-    # --- MENSAJE TEMPORAL ---
-    if estado.tiempo_mensaje > 0:
-        estado.tiempo_mensaje -= 1
-        if estado.tiempo_mensaje == 0:
-            estado.mensaje_temporal = ""
-
-    # --- DIBUJADO ---
-    dibujar()
-    pygame.display.flip()
-    reloj.tick(VELOCIDAD_DEUDA if estado.snake.tiene_deuda() else VELOCIDAD_BASE)
+    # ── ¿Volver al menú o salir del juego? ──
+    if not estado.volver_a_menu:
+        break
 
 pygame.quit()

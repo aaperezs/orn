@@ -16,11 +16,11 @@ class CrecimientoMixin:
                 if self.creciendo:
                     self.largo_original += 1
 
-                if self.deuda and self.segmentos_para_saldar > 0:
-                    self.segmentos_para_saldar -= 1
-                    if self.segmentos_para_saldar <= 0:
-                        self.deuda = False
-                        print("¡Deuda saldada! Velocidad normal.")
+        if self.deuda:
+            self.segmentos_para_saldar -= cantidad
+            if self.segmentos_para_saldar <= 0:
+                self.deuda = False
+                print("¡Deuda saldada! Velocidad normal.")
 
     def vender_segmentos(self, cantidad):
         """Vende segmentos de la cola"""
