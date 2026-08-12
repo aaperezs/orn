@@ -41,6 +41,13 @@ class Boss:
         self.damage_per_cycle = 20
         self.fight_type = "orbital"
         self.phases = []
+        self.sprite_sheet = ""
+        self.sprite_rows = 1
+        self.sprite_cols = 1
+        self.sprite_frame_w = 60
+        self.sprite_frame_h = 60
+        self.sprite_interval = 12
+        self._sprite_frames = None
         self._configurar_tipo(tipo)
 
     def _configurar_tipo(self, tipo):
@@ -60,6 +67,24 @@ class Boss:
         self.fight_type = config.get("fight_type", "orbital")
         self.phases = config.get("phases", [])
         self.max_proyectiles = self.proyectiles_necesarios
+
+        self.sprite_sheet = config.get("sprite_sheet", "")
+        self.sprite_rows = config.get("sprite_rows", 1)
+        self.sprite_cols = config.get("sprite_cols", 1)
+        self.sprite_frame_w = config.get("sprite_frame_w", self.ancho)
+        self.sprite_frame_h = config.get("sprite_frame_h", self.alto)
+        self.sprite_interval = config.get("sprite_interval", 12)
+        if self.sprite_sheet:
+            from utils.sprite_sheet import cargar_hoja
+            self._sprite_frames = cargar_hoja(
+                self.sprite_sheet,
+                self.sprite_rows,
+                self.sprite_cols,
+                self.sprite_frame_w,
+                self.sprite_frame_h,
+            )
+        else:
+            self._sprite_frames = None
 
         self._apply_phase()
 
@@ -198,6 +223,20 @@ class Boss:
         cy = int(self.y + self.alto // 2) + offset_y
 
         herido = self.estado == "HERIDO" and self.brillo > 0 and pygame.time.get_ticks() % 100 < 50
+
+        if self._sprite_frames:
+            cols = max(1, self.sprite_cols)
+            frames = self._sprite_frames
+            fila = min(max(0, self.fase), len(frames) // cols - 1)
+            col = (pygame.time.get_ticks() // max(1, self.sprite_interval)) % cols
+            idx = fila * cols + col
+            if idx < len(frames):
+                frame = frames[idx]
+                if frame.get_size() != (ancho_sprite, alto_sprite):
+                    frame = pygame.transform.scale(frame, (ancho_sprite, alto_sprite))
+                pantalla.blit(frame, (cx - ancho_sprite // 2, cy - alto_sprite // 2))
+            self.dibujar_proyectiles(pantalla, offset_x, offset_y)
+            return
 
         w3 = ancho_sprite // 2
         h3 = alto_sprite // 2

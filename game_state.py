@@ -14,6 +14,7 @@ from systems.habilidades import SistemaHabilidades
 from systems.particles import ParticleSystem
 from systems.stack_manager import StackManager
 from systems.text_screen_player import TextScreenPlayer
+from runtime.flags import FlagsManager
 
 import pygame
 
@@ -43,15 +44,22 @@ class GameState:
         self.habilidades = SistemaHabilidades()
         self.event_bus = BusEventos()
         self.stack_manager = StackManager(self)
-        self.dialogo = DialogoSystem()
+        self.flags = FlagsManager()
+        self.dialogo = DialogoSystem(flags=self.flags)
         self.ventana = TextScreenPlayer()
         self.camera = Camera(ANCHO, ALTO)
         self.inventario = Inventario()
         from systems.forja import SistemaForja
         self.sistema_forja = SistemaForja(self)
+        from systems.minigame import MiniJuegoManager
+        self.sistema_minijuego = MiniJuegoManager(self)
+        from systems.audio_manager import AudioManager
+        self.audio = AudioManager()
 
         # ── Domain objects ──
         nivel = self.level_manager.obtener_nivel_actual()
+        if nivel is None:
+            raise RuntimeError("No hay mapa: el proyecto no tiene un mapa configurado")
         self.stack_manager.load_stacks(self.level_manager.obtener_id_actual())
         inicio_x, inicio_y = WorldState.posicion_inicio_static(nivel)
         snake = Snake(inicio_x, inicio_y, z=Z_MAPA_PRINCIPAL)
@@ -85,12 +93,23 @@ class GameState:
         self.gate_salida_id = None
         self.text_service = TextService(pool_size=64)
         self.textos_flotantes = []  # legacy — migrate to text_service
-        self.flags = {}
         self.god_mode = False
         self.demo_habilidad_pendiente = False
         self.mandos_bloqueados = False
         self.nivel_origen = None
         self.demo_habilidad_id = None
+
+        # ── Visual Novel state ──
+        self.fondo_activo = None
+        self.fondo_modo = "fill"
+        self.personajes_visibles = {}
+        self.mostrando_opciones = False
+        self.opciones = []
+        self.opcion_seleccionada = -1
+
+        # ── Minigame state ──
+        self.mostrando_minijuego = False
+        self.minijuego_id = None
 
         self._init_habilidades_iniciales()
 

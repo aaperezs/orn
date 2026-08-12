@@ -2,6 +2,7 @@ import os
 
 import pygame
 
+from project_paths import assets_dir
 from .base import BaseScreen
 
 
@@ -15,11 +16,7 @@ class ImagenScreen(BaseScreen):
         self._cargar_imagen()
 
     def _cargar_imagen(self):
-        ruta = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "assets",
-            f"{self._screen_id}.png",
-        )
+        ruta = assets_dir(f"{self._screen_id}.png")
         if os.path.exists(ruta):
             try:
                 self._image = pygame.image.load(ruta).convert_alpha()

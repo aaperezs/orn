@@ -3,8 +3,9 @@ import os
 
 import pygame
 from configs import *
+from project_paths import data_dir
 
-RUTA = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "text_screens.json")
+RUTA = data_dir("text_screens.json")
 
 
 class TextScreenPlayer:

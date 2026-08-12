@@ -2,6 +2,7 @@ import json
 import os
 
 import pygame
+from project_paths import data_dir
 
 _animations = {}
 _loaded = False
@@ -11,7 +12,7 @@ def _load():
     global _loaded
     if _loaded:
         return
-    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "animations.json")
+    path = data_dir("animations.json")
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             _animations.update(json.load(f))

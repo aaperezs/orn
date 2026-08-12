@@ -2,7 +2,17 @@ import os
 
 import pygame
 
-RUTA_ASSETS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+
+def _assets_dir():
+    try:
+        from editor.project import get_current_project
+        p = get_current_project()
+        if p is not None:
+            return os.path.join(p.root, "assets")
+    except Exception:
+        pass
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+
 
 _cache = {}
 
@@ -16,7 +26,7 @@ def obtener(nombre):
     """
     if nombre in _cache:
         return _cache[nombre]
-    ruta = os.path.join(RUTA_ASSETS, nombre + ".png")
+    ruta = os.path.join(_assets_dir(), nombre + ".png")
     if os.path.exists(ruta):
         try:
             img = pygame.image.load(ruta).convert_alpha()

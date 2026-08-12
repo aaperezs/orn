@@ -3,8 +3,9 @@ import os
 
 import pygame
 from configs import *
+from project_paths import data_dir
 
-RUTA_PROLOGO = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "prologo.json")
+RUTA_PROLOGO = data_dir("prologo.json")
 
 pygame.font.init()
 

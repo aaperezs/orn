@@ -67,6 +67,29 @@ class InputManager:
     def _handle_key(self, key):
         estado = self.estado
 
+        # Minigame overrides everything
+        if estado.mostrando_minijuego:
+            event = pygame.event.Event(pygame.KEYDOWN, key=key)
+            estado.sistema_minijuego.handle_event(event)
+            return
+
+        # Choice box overrides dialogue
+        if estado.mostrando_opciones:
+            if key == pygame.K_UP:
+                estado.opcion_seleccionada = max(0, estado.opcion_seleccionada - 1) if estado.opcion_seleccionada >= 0 else len(estado.opciones) - 1
+            elif key == pygame.K_DOWN:
+                estado.opcion_seleccionada = (estado.opcion_seleccionada + 1) % len(estado.opciones) if estado.opcion_seleccionada >= 0 else 0
+            elif key in (pygame.K_SPACE, pygame.K_RETURN):
+                if 0 <= estado.opcion_seleccionada < len(estado.opciones):
+                    opcion = estado.opciones[estado.opcion_seleccionada]
+                    estado.mostrando_opciones = False
+                    acciones_opcion = opcion.get("acciones", [])
+                    cola_restante = estado.stack_manager._cola_acciones
+                    cola_ctx = estado.stack_manager._cola_ctx
+                    estado.stack_manager._cola_acciones = []
+                    estado.stack_manager.ejecutar_secuencia(acciones_opcion + cola_restante, ctx=cola_ctx)
+            return
+
         # Dialogue overrides everything
         if estado.dialogo.activo:
             if key in (pygame.K_SPACE, pygame.K_RETURN):

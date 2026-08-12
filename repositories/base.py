@@ -1,7 +1,9 @@
 import json
 import os
 
-RUTA_DATA = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+from project_paths import data_dir
+
+RUTA_DATA = data_dir()
 
 
 class RepositorioBase:

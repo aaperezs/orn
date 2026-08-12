@@ -3,14 +3,15 @@ import os
 
 import pygame
 from configs import *
+from project_paths import data_dir, assets_dir
 
-RUTA_DIALOGOS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "dialogos.json")
+RUTA_DIALOGOS = data_dir("dialogos.json")
 
 pygame.font.init()
 
 _SPRITE_CACHE = {}
 _SPRITE_H = 22
-_RUTA_ASSETS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+_RUTA_ASSETS = assets_dir()
 
 def _cargar_fuente(tam, negrita=False):
     for nombre in ["Georgia", "Palatino Linotype", "Book Antiqua", None]:
@@ -49,7 +50,7 @@ def _cargar_sprite_marcador(nombre):
         _SPRITE_CACHE[nombre] = None
         return None
 
-def _dividir_texto_con_marcadores(texto):
+def _dividir_texto_con_marcadores(texto, flags=None):
     partes = []
     resto = texto
     while "{" in resto:
@@ -62,7 +63,12 @@ def _dividir_texto_con_marcadores(texto):
         end = resto.index("}", idx)
         marcador = resto[idx+1:end]
         if marcador:
-            partes.append(("sprite", marcador))
+            if marcador.startswith("flag:"):
+                flag_name = marcador[5:]
+                valor = str(flags.get(flag_name, "?")) if flags else "?"
+                partes.append(("texto", valor))
+            else:
+                partes.append(("sprite", marcador))
         resto = resto[end+1:]
     if resto:
         partes.append(("texto", resto))
@@ -78,7 +84,7 @@ def _render_con_brillo(pantalla, texto, fuente, color_texto, color_brillo, pos):
 
 
 class DialogoSystem:
-    def __init__(self):
+    def __init__(self, flags=None):
         self.activo = False
         self.lineas = []
         self.linea_actual = 0
@@ -89,6 +95,7 @@ class DialogoSystem:
         self.tipo = None
         self.tiempo_espera = 0
         self.dialogos = self._cargar_dialogos()
+        self.flags = flags or {}
 
     def _cargar_dialogos(self):
         try:
@@ -105,6 +112,8 @@ class DialogoSystem:
                 al_terminar()
             return
         lineas_tipo = self.dialogos[boss_id].get(tipo, [])
+        if isinstance(lineas_tipo, dict):
+            lineas_tipo = lineas_tipo.get("flat", [])
         if not lineas_tipo:
             print(f"No hay lineas de dialogo para {boss_id}/{tipo}")
             if al_terminar:
@@ -115,6 +124,18 @@ class DialogoSystem:
         self.boss_nombre = boss_nombre
         self.tipo = tipo
         self.lineas = lineas_tipo
+        self.linea_actual = 0
+        self.char_idx = 0
+        self.activo = True
+        self.terminado = False
+        self.al_terminar = al_terminar
+        self.tiempo_espera = 0
+
+    def iniciar_inline(self, lineas, boss_nombre="", al_terminar=None):
+        self.boss_id = "inline"
+        self.boss_nombre = boss_nombre
+        self.tipo = "inline"
+        self.lineas = lineas
         self.linea_actual = 0
         self.char_idx = 0
         self.activo = True
@@ -184,7 +205,7 @@ class DialogoSystem:
         espacio_linea = 30
 
         texto_completo = self.lineas[self.linea_actual][:self.char_idx]
-        partes = _dividir_texto_con_marcadores(texto_completo)
+        partes = _dividir_texto_con_marcadores(texto_completo, self.flags)
 
         x_actual = contenido_x
         y_actual = contenido_y

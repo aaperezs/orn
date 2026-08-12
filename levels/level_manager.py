@@ -4,8 +4,9 @@ import os
 from configs import *
 
 from levels.level_parser import LevelParser
+from project_paths import levels_dir
 
-RUTA_MAPAS = os.path.join(os.path.dirname(__file__), "mapas")
+RUTA_MAPAS = levels_dir("mapas")
 
 
 class LevelManager:
@@ -147,3 +148,13 @@ class LevelManager:
 
     def obtener_id_actual(self):
         return self.nivel_id_actual
+
+    def tiene_mapas(self):
+        return bool(self.niveles)
+
+    def mapa_con_inicio(self):
+        """Devuelve el id del primer mapa con inicio de personaje configurado, o None."""
+        for nid, nivel in self.niveles.items():
+            if nivel.get('inicio') is not None:
+                return nid
+        return None

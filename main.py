@@ -6,23 +6,57 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 _MODO_TEST = "--test" in sys.argv
 
+_PROJECT_PATH = None
+for _i, _arg in enumerate(sys.argv):
+    if _arg == "--project" and _i + 1 < len(sys.argv):
+        _PROJECT_PATH = sys.argv[_i + 1]
+    elif _arg != "--test" and not _arg.startswith("-") and os.path.isdir(_arg):
+        _PROJECT_PATH = _arg
+if _PROJECT_PATH:
+    _PROJECT_PATH = os.path.abspath(_PROJECT_PATH)
+elif getattr(sys, "frozen", False):
+    _PROJECT_PATH = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+else:
+    _PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+
 
 import pygame
 
 # Set up project path for editor data modules
 from editor.project import set_current_project
 
-set_current_project(os.path.dirname(os.path.abspath(__file__)))
+set_current_project(_PROJECT_PATH)
+
+# Resolución base del proyecto (la define el desarrollador en cururo.json).
+# Debe fijarse ANTES de que los demás módulos importen ANCHO/ALTO.
+if not _MODO_TEST:
+    import json as _json
+    try:
+        with open(os.path.join(_PROJECT_PATH, "cururo.json"), encoding="utf-8") as _f:
+            _manifest_res = _json.load(_f).get("resolution", "800x600")
+        if isinstance(_manifest_res, dict):
+            _base_w = int(_manifest_res.get("w", 800))
+            _base_h = int(_manifest_res.get("h", 600))
+        else:
+            _base_w, _base_h = (int(p) for p in str(_manifest_res).strip().lower().replace(" ", "").split("x"))
+        import configs.constants as _const_res
+        _const_res.ANCHO, _const_res.ALTO = _base_w, _base_h
+        import configs as _cfg_res
+        _cfg_res.ANCHO, _cfg_res.ALTO = _base_w, _base_h
+    except Exception:
+        pass
 from configs import *
 from entities.food import Food
 from entities.segmento_perdido import SegmentoPerdido
 from game_state import GameState
+from systems.vn_state import finalizar_minijuego
 from handlers.input_manager import InputManager
 from managers.colision_manager import ColisionManager
 from managers.combate_manager import CombateManager
 from managers.comida_manager import ComidaManager
 from systems.event_bus import EventoObjetoDestruido
 from systems.ui import UI
+from systems.choice_box import ChoiceBox
 
 
 # ============================================
@@ -30,20 +64,108 @@ from systems.ui import UI
 # ============================================
 
 pygame.init()
-pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("ORM - El Vástago del Mundo")
-reloj = pygame.time.Clock()
+pygame.mixer.init(frequency=22050, size=-16, channels=8)
 
-# Cargar config de pantallas una vez (splash, title, menu, prologue)
+# Cargar config del proyecto una vez (pantallas, ventana, plataforma, calidad)
 _SCREENS_CFG = {}
+_PROJECT_CATEGORY = "snake_rpg"
+_PROJECT_TITLE = None
+_PROJECT_PLATFORM = "desktop"
+_PROJECT_QUALITY = "medium"
+_PROJECT_FULLSCREEN = False
 if not _MODO_TEST:
     import json
     try:
-        with open(os.path.join(os.path.dirname(__file__), "cururo.json"), encoding="utf-8") as f:
+        with open(os.path.join(_PROJECT_PATH, "cururo.json"), encoding="utf-8") as f:
             manifest = json.load(f)
         _SCREENS_CFG = manifest.get("screens", {})
+        _PROJECT_CATEGORY = manifest.get("category", "snake_rpg")
+        _window = manifest.get("window")
+        if isinstance(_window, dict):
+            _PROJECT_TITLE = _window.get("title") or manifest.get("name")
+            _PROJECT_FULLSCREEN = bool(_window.get("fullscreen", False))
+        else:
+            _PROJECT_TITLE = manifest.get("name")
+        _PROJECT_PLATFORM = manifest.get("platform", "desktop")
+        _PROJECT_QUALITY = manifest.get("quality", "medium")
     except Exception:
         pass
+
+# Preferencias del usuario final (resolución de pantalla) sobre las del manifest.
+if not _MODO_TEST:
+    try:
+        from systems.user_prefs import load as _load_prefs, parse_resolution as _parse_prefs_res
+        _prefs = _load_prefs()
+    except Exception:
+        _prefs = None
+else:
+    _prefs = None
+if _prefs:
+    _prefs_size = _parse_prefs_res(_prefs.get("resolution", "auto"))
+    _prefs_fullscreen = bool(_prefs.get("fullscreen", False))
+    _fullscreen = _prefs_fullscreen
+else:
+    _prefs_size = None
+    _fullscreen = _PROJECT_FULLSCREEN or _PROJECT_PLATFORM == "mobile"
+
+from display import setup as _display_setup, present as _display_present, get_buffer as _display_buffer, set_letterbox_fill as _display_set_fill
+
+pantalla = _display_setup(
+    window_size=_prefs_size,
+    fullscreen=_fullscreen,
+)
+pygame.display.set_caption(_PROJECT_TITLE or "Cururo")
+reloj = pygame.time.Clock()
+
+
+# ============================================
+# ALERTA DE PROYECTO INVALIDO
+# ============================================
+
+def _alerta(titulo, detalle):
+    """Pantalla de aviso que bloquea hasta que el usuario presiona una tecla."""
+    from display import get_buffer as _get_buffer, present as _present
+    surf = _get_buffer()
+    if surf is None:
+        return
+    pygame.font.init()
+    font = pygame.font.SysFont("Arial", 20, bold=True)
+    font_d = pygame.font.SysFont("Arial", 16)
+    font_h = pygame.font.SysFont("Arial", 15)
+    surf.fill((18, 20, 26))
+    w, h = surf.get_size()
+    t = font.render(titulo, True, (230, 180, 90))
+    surf.blit(t, ((w - t.get_width()) // 2, h // 2 - 70))
+    dy = h // 2 - 20
+    for linea in detalle:
+        l = font_d.render(linea, True, (200, 205, 210))
+        surf.blit(l, ((w - l.get_width()) // 2, dy))
+        dy += 26
+    hint = font_h.render("Presiona ENTER o ESC para salir", True, (120, 130, 140))
+    surf.blit(hint, ((w - hint.get_width()) // 2, h - 60))
+    _present()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE):
+                    return
+        pygame.time.wait(30)
+
+
+def _validar_proyecto():
+    """Devuelve (titulo, detalle) si el proyecto no tiene mapa/inicio, o (None, None)."""
+    from levels.level_manager import LevelManager
+    lm = LevelManager()
+    if not lm.tiene_mapas():
+        return ("Debes crear un mapa",
+                ["El proyecto no tiene mapas.", "Crea un mapa y configura el inicio del personaje en el editor."])
+    if lm.mapa_con_inicio() is None:
+        return ("Debes setear el inicio del personaje",
+                ["Los mapas existen pero ninguno tiene el inicio del personaje.", "Configura el sprite de inicio en el mapa."])
+    return (None, None)
+
 
 # ============================================
 # FUNCIONES AUXILIARES (definidas una vez, usan `estado` como global)
@@ -133,9 +255,45 @@ def recoger_segmentos():
 # ============================================
 
 def dibujar():
+    from utils.sprite_manager import obtener as obtener_sprite
+
+    # ── VN Mode ──
+    if estado.fondo_activo:
+        sp = obtener_sprite(estado.fondo_activo)
+        if sp:
+            modo = getattr(estado, "fondo_modo", "fill")
+            iw, ih = sp.get_size()
+            if modo == "fill":
+                sp = pygame.transform.scale(sp, (ANCHO, ALTO))
+            elif modo == "fit":
+                scale = min(ANCHO / iw, ALTO / ih)
+                nw, nh = int(iw * scale), int(ih * scale)
+                sp = pygame.transform.smoothscale(sp, (nw, nh))
+                surf = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+                surf.fill((0, 0, 0))
+                surf.blit(sp, ((ANCHO - nw) // 2, (ALTO - nh) // 2))
+                sp = surf
+            elif modo == "center":
+                surf = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)
+                surf.fill((0, 0, 0))
+                surf.blit(sp, ((ANCHO - iw) // 2, (ALTO - ih) // 2))
+                sp = surf
+            pantalla.blit(sp, (0, 0))
+        else:
+            pantalla.fill((0, 0, 0))
+        for info in estado.personajes_visibles.values():
+            sp_char = obtener_sprite(info["sprite"])
+            if sp_char:
+                px = {0: 100, 1: ANCHO // 2 - sp_char.get_width() // 2, 2: ANCHO - 100 - sp_char.get_width()}.get(info["posicion"], ANCHO // 2 - sp_char.get_width() // 2)
+                py = ALTO - sp_char.get_height() - 40
+                pantalla.blit(sp_char, (px, py))
+        ui.dibujar(pantalla, estado.snake, estado.comida, estado.mensaje_temporal)
+        if estado.mostrando_opciones:
+            choice_box.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada)
+        return
+
     pantalla.fill(FOREST_BG)
     ox, oy = estado.camera.get_offset()
-    from utils.sprite_manager import obtener as obtener_sprite
     pasto_sprite = obtener_sprite("pasto")
     deco_sprites = [obtener_sprite(f"deco_{i}") for i in range(4)]
     deco_hash = (estado.nivel_ancho + estado.nivel_alto) ^ 42
@@ -286,12 +444,137 @@ def dibujar():
         pantalla.blit(overlay, (0, 0))
 
 # ============================================
+# MODO NOVELA VISUAL (usa scene_player en lugar del loop de snake)
+# ============================================
+
+def _run_vn_mode(pantalla):
+    from systems.scene_player import load_scenes, find_first_scene, get_chapters
+    from systems.screen_manager import ScreenManager
+    if not _MODO_TEST:
+        sm = ScreenManager(pantalla, _SCREENS_CFG)
+        sm.run()
+        pantalla = _display_buffer()
+    scenes_data = load_scenes()
+    chapters = get_chapters(scenes_data)
+    if not chapters:
+        return
+    from systems.vn_state import VnGameState, finalizar_minijuego
+    estado = VnGameState()
+    estado.fondo_activo = "fondo_ejemplo"
+    estado.fondo_modo = "fill"
+    reloj_vn = pygame.time.Clock()
+    from utils.sprite_manager import obtener as obtener_sprite
+    def _iniciar_arbol(estado_ref, dialogo_id):
+        if "/" not in dialogo_id:
+            return
+        personaje, contexto = dialogo_id.split("/", 1)
+        sm = estado_ref.stack_manager
+        sm._arbol_dialogo = {"personaje": personaje, "contexto": contexto, "nid_actual": None, "_iniciado": False}
+        sm._avanzar_arbol_dialogo(estado_ref)
+        sm._bloqueo_por = "dialogo_tree"
+
+    first = find_first_scene(scenes_data)
+    if first:
+        ctx = first.get("dialogo_id", "")
+        _iniciar_arbol(estado, ctx)
+    estado._scene_navegacion = None
+    while True:
+        reloj_vn.tick(30)
+        _display_set_fill(obtener_sprite(estado.fondo_activo) if estado.fondo_activo else None)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if estado.mostrando_minijuego:
+                    estado.sistema_minijuego.handle_event(event)
+                    continue
+                if estado.dialogo.activo:
+                    if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        estado.dialogo.avanzar()
+                elif estado.mostrando_opciones:
+                    if event.key == pygame.K_UP:
+                        estado.opcion_seleccionada = max(0, estado.opcion_seleccionada - 1) if estado.opcion_seleccionada >= 0 else len(estado.opciones) - 1
+                    elif event.key == pygame.K_DOWN:
+                        estado.opcion_seleccionada = (estado.opcion_seleccionada + 1) % len(estado.opciones) if estado.opcion_seleccionada >= 0 else 0
+                    elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                        if 0 <= estado.opcion_seleccionada < len(estado.opciones):
+                            opcion = estado.opciones[estado.opcion_seleccionada]
+                            estado.mostrando_opciones = False
+                            estado.stack_manager.ejecutar_secuencia(opcion.get("acciones", []))
+                elif event.key == pygame.K_ESCAPE:
+                    return
+        estado.dialogo.actualizar()
+        estado.stack_manager.actualizar(estado)
+        if estado._scene_navegacion:
+            nav = estado._scene_navegacion
+            estado._scene_navegacion = None
+            chapters = get_chapters(scenes_data)
+            if nav[0] < len(chapters):
+                ch = chapters[nav[0]]
+                escenas = ch.get("escenas", [])
+                if nav[1] < len(escenas):
+                    sc = escenas[nav[1]]
+                    estado.fondo_activo = "fondo_ejemplo"
+                    ctx = sc.get("dialogo_id", "")
+                    _iniciar_arbol(estado, ctx)
+        if estado.mostrando_minijuego:
+            dt_ms = reloj_vn.tick(30)
+            terminado = estado.sistema_minijuego.actualizar(dt_ms)
+            estado.stack_manager.actualizar(estado)
+            estado.sistema_minijuego.dibujar(pantalla)
+            if terminado:
+                finalizar_minijuego(estado)
+            _display_present()
+            continue
+        if not estado.dialogo.activo and not estado.mostrando_opciones:
+            pass
+        pantalla.fill((5, 8, 15))
+        bg = obtener_sprite(estado.fondo_activo) if estado.fondo_activo else None
+        if bg:
+            bg = pygame.transform.scale(bg, (ANCHO, ALTO)) if bg.get_width() != ANCHO else bg
+            pantalla.blit(bg, (0, 0))
+        for pj_id, info in estado.personajes_visibles.items():
+            sp = obtener_sprite(info.get("sprite", ""))
+            if sp:
+                px = [80, 300, 520][info.get("posicion", 1)]
+                py = ALTO - sp.get_height() - 60
+                pantalla.blit(sp, (px, py))
+        if estado.dialogo.activo:
+            estado.dialogo.dibujar(pantalla)
+        if estado.mostrando_opciones:
+            from systems.choice_box import ChoiceBox
+            cb = ChoiceBox()
+            cb.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada)
+        _display_present()
+        if not estado.corriendo:
+            break
+
+# ============================================
 # BUCLE PRINCIPAL (outer: menu → juego → menu ...)
 # ============================================
+
+if _PROJECT_CATEGORY == "visual_novel":
+    _run_vn_mode(pantalla)
+    pygame.quit()
+    sys.exit()
+
+_display_set_fill(None)
+
+_alerta_problema = _validar_proyecto()
+if _alerta_problema[0]:
+    if _MODO_TEST:
+        print(f"[ERROR] {_alerta_problema[0]}: {' '.join(_alerta_problema[1])}")
+        pygame.quit()
+        sys.exit(1)
+    _alerta(*_alerta_problema)
+    pygame.quit()
+    sys.exit(1)
 
 while True:
     estado = GameState()
     ui = UI()
+    choice_box = ChoiceBox()
     move_accumulator = 0.0
 
     # ── Managers ──
@@ -331,6 +614,7 @@ while True:
         from systems.screen_manager import ScreenManager
         sm = ScreenManager(pantalla, _SCREENS_CFG)
         sm.run()
+        pantalla = _display_buffer()
 
     # ── Game loop ──
     while estado.corriendo:
@@ -340,7 +624,7 @@ while True:
         # --- PAUSA ---
         if estado.pausa:
             ui.mostrar_pausa(pantalla)
-            pygame.display.flip()
+            _display_present()
             reloj.tick(10)
             continue
 
@@ -349,7 +633,7 @@ while True:
             estado.sistema_forja.actualizar()
             dibujar()
             estado.sistema_forja.dibujar(pantalla)
-            pygame.display.flip()
+            _display_present()
             reloj.tick(10)
             continue
 
@@ -368,7 +652,7 @@ while True:
                 print(f"[MUERTE] {estado.death_cause}")
                 estado.death_cause = ""
             ui.mostrar_game_over(pantalla, estado.snake, estado)
-            pygame.display.flip()
+            _display_present()
             reloj.tick(10)
             continue
 
@@ -378,7 +662,7 @@ while True:
             estado.stack_manager.actualizar(estado)
             dibujar()
             estado.dialogo.dibujar(pantalla)
-            pygame.display.flip()
+            _display_present()
             reloj.tick(10)
             continue
 
@@ -387,8 +671,19 @@ while True:
             estado.ventana.actualizar()
             estado.stack_manager.actualizar(estado)
             estado.ventana.dibujar(pantalla)
-            pygame.display.flip()
+            _display_present()
             reloj.tick(10)
+            continue
+
+        # --- MINIJUEGO ---
+        if estado.mostrando_minijuego:
+            dt_ms = reloj.tick(30)
+            terminado = estado.sistema_minijuego.actualizar(dt_ms)
+            estado.stack_manager.actualizar(estado)
+            estado.sistema_minijuego.dibujar(pantalla)
+            if terminado:
+                finalizar_minijuego(estado)
+            _display_present()
             continue
 
         # --- MOVIMIENTO (FPS fijo, movimiento por acumulador) ---
@@ -472,7 +767,7 @@ while True:
 
         # --- DIBUJADO ---
         dibujar()
-        pygame.display.flip()
+        _display_present()
         reloj.tick(VELOCIDAD_DEUDA if estado.snake.tiene_deuda() else VELOCIDAD_BASE)
 
     # ── ¿Volver al menú o salir del juego? ──

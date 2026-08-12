@@ -7,9 +7,10 @@ import pygame
 from configs import MOSTRAR_LOGS
 from configs.constants import TAMANO_CELDA
 from configs.game import VELOCIDAD_BASE
+from project_paths import levels_dir
 from repositories.repositorio_objetos import RepositorioObjetos
 
-STACKS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "levels", "mapas_stacks")
+STACKS_DIR = levels_dir("mapas_stacks")
 
 
 class StackManager:
@@ -22,8 +23,9 @@ class StackManager:
         self.timer_hasta = 0      # Timestamp en ms hasta cuando esperar
         self._cola_acciones = []  # Acciones pendientes tras esperar
         self._cola_ctx = (0, 0, 0)  # (x, y, z) contexto de la cola
-        self._bloqueo_por = None  # None, "timer", "dialogo", "ventana"
+        self._bloqueo_por = None  # None, "timer", "dialogo", "ventana", "choice", "dialogo_tree"
         self._auto_direccion = None  # Dirección para auto_caminar
+        self._arbol_dialogo = None  # Estado del arbol de diálogo en reproducción
 
     def load_stacks(self, nivel_id):
         self._stacks = {}
@@ -148,6 +150,15 @@ class StackManager:
                 self._bloqueo_por = None
                 acciones, self._cola_acciones = self._cola_acciones, []
                 self._ejecutar_acciones(acciones, *self._cola_ctx)
+        elif self._bloqueo_por == "choice":
+            if not estado.mostrando_opciones:
+                self._bloqueo_por = None
+        elif self._bloqueo_por == "dialogo_tree":
+            if not estado.dialogo.activo and not estado.mostrando_opciones:
+                self._bloqueo_por = None
+        elif self._bloqueo_por == "minijuego":
+            if not estado.mostrando_minijuego:
+                self._bloqueo_por = None
 
         if self._auto_direccion and hasattr(estado, "snake"):
             estado.snake.cambiar_direccion(self._auto_direccion)
@@ -313,11 +324,34 @@ class StackManager:
                 flag = params.get("flag", "")
                 if not hasattr(estado, "flags"):
                     return False
-                actual = bool(estado.flags.get(flag))
-                if op == "es_verdadero" and not actual:
-                    return False
-                if op == "es_falso" and actual:
-                    return False
+                actual = estado.flags.get(flag)
+                if op in ("es_verdadero", "es_falso"):
+                    valido = bool(actual)
+                    if op == "es_verdadero" and not valido:
+                        return False
+                    if op == "es_falso" and valido:
+                        return False
+                else:
+                    if actual is None:
+                        return False
+                    esperado = params.get("valor", 1)
+                    if isinstance(actual, str) or isinstance(esperado, str):
+                        if op not in ("==", "!="):
+                            return False
+                        if (op == "==") != (str(actual) == str(esperado)):
+                            return False
+                    else:
+                        if not isinstance(actual, (int, float)):
+                            try:
+                                actual = int(actual)
+                            except (ValueError, TypeError):
+                                return False
+                        try:
+                            esperado = int(esperado)
+                        except (ValueError, TypeError):
+                            esperado = 1
+                        if not self._eval(actual, op, esperado):
+                            return False
 
             elif ct == "ability":
                 ability = params.get("ability", "")
@@ -378,6 +412,123 @@ class StackManager:
         if op == "!=": return actual != esperado
         return True
 
+    # ── Árbol de diálogo ──────────────────────────────────
+
+    def _avanzar_arbol_dialogo(self, estado):
+        if not self._arbol_dialogo:
+            self._bloqueo_por = None
+            return
+        ad = self._arbol_dialogo
+        personaje = ad["personaje"]
+        contexto = ad["contexto"]
+        from systems.dialogo import RUTA_DIALOGOS
+        import json, os
+        tree_data = None
+        if os.path.exists(RUTA_DIALOGOS):
+            with open(RUTA_DIALOGOS, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            ctx_data = raw.get(personaje, {}).get(contexto, {})
+            if isinstance(ctx_data, dict) and "nodes" in ctx_data:
+                tree_data = ctx_data
+
+        if not tree_data:
+            self._arbol_dialogo = None
+            self._bloqueo_por = None
+            return
+
+        nodes = tree_data["nodes"]
+        nid = ad.get("nid_actual")
+        if not nid:
+            if ad.get("_iniciado"):
+                self._arbol_dialogo = None
+                self._bloqueo_por = None
+                return
+            nid = tree_data.get("start", "")
+            ad["_iniciado"] = True
+        if not nid or nid not in nodes:
+            self._arbol_dialogo = None
+            self._bloqueo_por = None
+            return
+
+        node = nodes[nid]
+        tipo = node.get("tipo", "")
+
+        if tipo == "dialogo":
+            texto = node.get("texto", "")
+            quien = node.get("quien", personaje)
+            estado.dialogo.iniciar_inline([texto], boss_nombre=quien)
+            ad["nid_actual"] = node.get("next", "")
+            # Cuando termine el diálogo, seguimos
+            estado.dialogo.al_terminar = lambda: self._on_arbol_dialogo_end(estado)
+
+        elif tipo == "opcion":
+            choices = node.get("choices", [])
+            opts = []
+            for ch in choices:
+                opts.append({
+                    "texto": ch.get("texto", ""),
+                    "acciones": [{"tipo": "_arbol_choice", "params": {"destino": ch.get("next", "")}}],
+                })
+            estado.mostrando_opciones = True
+            estado.opciones = opts
+            estado.opcion_seleccionada = -1
+            self._bloqueo_por = "choice"
+            # Guardamos el contexto para cuando elijan
+            ad["_pendiente"] = True
+
+        elif tipo == "condicion":
+            flag = node.get("flag", "")
+            operador = node.get("operador", "==")
+            valor = node.get("valor", "")
+            if hasattr(estado, "flags"):
+                actual = estado.flags.get(flag)
+                if actual is None:
+                    cumple = False
+                elif isinstance(actual, str) or isinstance(valor, str):
+                    cumple = (operador == "==" and str(actual) == str(valor)) or \
+                             (operador == "!=" and str(actual) != str(valor))
+                else:
+                    try:
+                        cumple = self._eval(actual, operador, int(valor))
+                    except (ValueError, TypeError):
+                        cumple = False
+            else:
+                cumple = False
+            ad["nid_actual"] = node.get("next" if cumple else "next_false", "")
+            self._avanzar_arbol_dialogo(estado)
+
+        elif tipo == "accion":
+            tipo_accion = node.get("tipo_accion", "")
+            params = node.get("params", {})
+            self._ejecutar_accion(tipo_accion, params, 0, 0, 0)
+            ad["nid_actual"] = node.get("next", "")
+            self._avanzar_arbol_dialogo(estado)
+
+        elif tipo == "salto":
+            destino = node.get("destino", "")
+            if "/" in destino:
+                dp, dc = destino.split("/", 1)
+                ad["personaje"] = dp
+                ad["contexto"] = dc
+                ad["nid_actual"] = None
+                self._avanzar_arbol_dialogo(estado)
+            else:
+                self._arbol_dialogo = None
+                self._bloqueo_por = None
+
+        else:
+            self._arbol_dialogo = None
+            self._bloqueo_por = None
+
+    def _on_arbol_dialogo_end(self, estado):
+        if self._arbol_dialogo:
+            nid = self._arbol_dialogo.get("nid_actual", "")
+            if nid:
+                self._avanzar_arbol_dialogo(estado)
+            else:
+                self._arbol_dialogo = None
+                self._bloqueo_por = None
+
     def _ejecutar_acciones(self, acciones, x, y, z=0):
         for i, act in enumerate(acciones):
             print(f"[EVENTO] accion {i+1}: {act.get('tipo')} params={act.get('params', {})}")
@@ -386,6 +537,23 @@ class StackManager:
                 self._cola_acciones = acciones[i+1:]
                 self._cola_ctx = (x, y, z)
                 break
+
+    def ejecutar_secuencia(self, acciones, ctx=None):
+        self._cola_acciones = acciones
+        self._cola_ctx = ctx if ctx is not None else (0, 0, 0)
+        self._procesar_cola()
+
+    def _procesar_cola(self):
+        if not self._cola_acciones:
+            return
+        acciones = self._cola_acciones
+        self._cola_acciones = []
+        self._ejecutar_acciones(acciones, *self._cola_ctx)
+
+    def ejecutar_ahora(self, accion_dict):
+        tipo = accion_dict.get("tipo", "")
+        params = accion_dict.get("params", {})
+        self._ejecutar_accion(tipo, params, 0, 0, 0)
 
     def _ejecutar_accion(self, accion, params, x, y, z=0):
         estado = self.estado
@@ -433,6 +601,28 @@ class StackManager:
                 self._bloqueo_por = "dialogo"
                 return True
 
+        elif accion == "dialogo_inline":
+            lineas = params.get("lineas", [])
+            quien = params.get("quien", "")
+            if lineas and hasattr(estado, "dialogo"):
+                estado.dialogo.iniciar_inline(lineas, boss_nombre=quien)
+                self._bloqueo_por = "dialogo"
+                return True
+
+        elif accion == "dialogo_tree":
+            dialogo_id = params.get("dialogo_id", "")
+            if "/" in dialogo_id and hasattr(estado, "dialogo"):
+                personaje, contexto = dialogo_id.split("/", 1)
+                self._arbol_dialogo = {
+                    "personaje": personaje,
+                    "contexto": contexto,
+                    "nid_actual": None,
+                    "_iniciado": False,
+                }
+                self._avanzar_arbol_dialogo(estado)
+                self._bloqueo_por = "dialogo_tree"
+                return True
+
         elif accion == "start_boss_fight":
             if hasattr(estado, 'arena_boss') and estado.arena_boss:
                 arena = estado.arena_boss
@@ -478,13 +668,20 @@ class StackManager:
 
         elif accion == "set_flag":
             flag = params.get("flag", "")
+            valor = params.get("valor", True)
             if flag and hasattr(estado, "flags"):
-                estado.flags[flag] = True
+                estado.flags.set(flag, valor)
+
+        elif accion == "add_flag":
+            flag = params.get("flag", "")
+            cantidad = int(params.get("cantidad", 1))
+            if flag and hasattr(estado, "flags"):
+                estado.flags.add(flag, cantidad)
 
         elif accion == "clear_flag":
             flag = params.get("flag", "")
             if flag and hasattr(estado, "flags"):
-                estado.flags[flag] = False
+                estado.flags.set(flag, False)
 
         elif accion == "mover_a":
             evento_id = params.get("evento_id", "")
@@ -585,6 +782,89 @@ class StackManager:
             estado.volver_a_menu = True
             estado.corriendo = False
 
+        elif accion == "iniciar_minijuego":
+            minijuego_id = params.get("minijuego_id", "")
+            if minijuego_id and hasattr(estado, "sistema_minijuego"):
+                ok = estado.sistema_minijuego.iniciar(minijuego_id)
+                if ok:
+                    estado.mostrando_minijuego = True
+                    estado.minijuego_id = minijuego_id
+                    self._bloqueo_por = "minijuego"
+                    return True
+
+        elif accion == "ir_a_escena":
+            capitulo_idx = int(params.get("capitulo", 0))
+            escena_idx = int(params.get("escena", 0))
+            if hasattr(estado, "_scene_navegacion"):
+                estado._scene_navegacion = (capitulo_idx, escena_idx)
+            estado.cambiando_nivel = True
+            if hasattr(estado, "audio") and estado.audio.get_current_bgm():
+                estado.audio.stop_bgm(500)
+
+        elif accion == "play_bgm":
+            asset_id = params.get("asset_id", "")
+            fade_ms = int(params.get("fade_ms", 0))
+            if asset_id and hasattr(estado, "audio"):
+                estado.audio.play_bgm(asset_id, fade_ms)
+
+        elif accion == "stop_bgm":
+            fade_ms = int(params.get("fade_ms", 0))
+            if hasattr(estado, "audio"):
+                estado.audio.stop_bgm(fade_ms)
+
+        elif accion == "play_sfx":
+            asset_id = params.get("asset_id", "")
+            if asset_id and hasattr(estado, "audio"):
+                estado.audio.play_sfx(asset_id)
+
+        elif accion == "set_bgm_volume":
+            vol = float(params.get("volumen", 1.0))
+            if hasattr(estado, "audio"):
+                estado.audio.set_bgm_volume(vol)
+
+        elif accion == "set_sfx_volume":
+            vol = float(params.get("volumen", 1.0))
+            if hasattr(estado, "audio"):
+                estado.audio.set_sfx_volume(vol)
+
+        elif accion == "cambiar_fondo":
+            sprite_id = params.get("sprite_id", "")
+            if sprite_id and hasattr(estado, "fondo_activo"):
+                estado.fondo_activo = sprite_id
+                estado.fondo_modo = params.get("modo", "fill")
+
+        elif accion == "mostrar_personaje":
+            personaje_id = params.get("personaje_id", "")
+            posicion = params.get("posicion", "centro")
+            expresion = params.get("expresion", "normal")
+            if personaje_id and hasattr(estado, "personajes_visibles"):
+                sprite_name = f"personajes/{personaje_id}_{expresion}"
+                pos_map = {"izquierda": 0, "centro": 1, "derecha": 2}
+                estado.personajes_visibles[personaje_id] = {
+                    "sprite": sprite_name,
+                    "posicion": pos_map.get(posicion, 1),
+                    "x": 0,
+                    "y": 0,
+                }
+
+        elif accion == "ocultar_personaje":
+            personaje_id = params.get("personaje_id", "")
+            if personaje_id and hasattr(estado, "personajes_visibles"):
+                estado.personajes_visibles.pop(personaje_id, None)
+
+        elif accion == "ocultar_todos_personajes":
+            if hasattr(estado, "personajes_visibles"):
+                estado.personajes_visibles.clear()
+
+        elif accion == "mostrar_opciones":
+            opciones_data = params.get("opciones", [])
+            if opciones_data and hasattr(estado, "mostrando_opciones"):
+                estado.mostrando_opciones = True
+                estado.opciones = opciones_data
+                estado.opcion_seleccionada = -1
+                self._bloqueo_por = "choice"
+                return True
+
         elif accion == "iniciar_demo":
             demo_id = params.get("demo_id", "")
             if demo_id:
@@ -600,8 +880,8 @@ class StackManager:
                 if hasattr(estado, "snake"):
                     estado.snake.cambiar_direccion(comando)
             elif comando == "ATAQUE":
-                if self.fn_ataque:
-                    self.fn_ataque()
+                if hasattr(estado, "ejecutar_golpe_q"):
+                    estado.ejecutar_golpe_q()
             elif comando == "ACCION":
                 if hasattr(estado, "stack_manager"):
                     cabeza = estado.snake.get_cabeza()
@@ -630,6 +910,12 @@ class StackManager:
         elif accion == "despertar":
             if hasattr(estado, "snake"):
                 estado.snake.despertar()
+
+        elif accion == "_arbol_choice":
+            destino = params.get("destino", "")
+            if self._arbol_dialogo:
+                self._arbol_dialogo["nid_actual"] = destino
+                self._avanzar_arbol_dialogo(estado)
 
         elif accion == "accion_botton":
             tecla = params.get("tecla", "").upper()

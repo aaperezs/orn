@@ -2,9 +2,10 @@ import os
 
 import pygame
 
+from project_paths import assets_dir
 from .base import BaseScreen
 
-RUTA = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets", "cururo_games.png")
+RUTA = assets_dir("cururo_games.png")
 
 
 class CururoGamesScreen(BaseScreen):

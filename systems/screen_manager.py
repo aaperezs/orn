@@ -1,10 +1,15 @@
+import json
+import os
 import sys
 
 import pygame
 
+from project_paths import data_dir
+from display import present as _display_present, get_buffer as _display_buffer
 from .screens.cururo_games import CururoGamesScreen
 from .screens.imagen import ImagenScreen
 from .screens.text import TextScreen
+from .screens.titulo import TituloScreen
 
 SCREEN_REGISTRY = {
     "cururo_games": CururoGamesScreen,
@@ -21,6 +26,18 @@ class ScreenManager:
         self.items = screens_cfg.get("items", ["cururo_games"])
         self.screen_configs = screens_cfg.get("config", {})
         self.enabled = screens_cfg.get("enabled", True)
+        self._scenes_cache = None
+
+    def _load_scenes_title(self):
+        scenes_path = data_dir("scenes.json")
+        if os.path.exists(scenes_path):
+            try:
+                with open(scenes_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data.get("titulo", {})
+            except Exception:
+                pass
+        return {}
 
     def run(self):
         if not self.enabled:
@@ -39,6 +56,10 @@ class ScreenManager:
         cls = SCREEN_REGISTRY.get(screen_id)
         if cls:
             return cls(cfg)
+        if screen_id == "title":
+            title_data = self._load_scenes_title()
+            if title_data.get("enabled"):
+                return TituloScreen(cfg, title_data, self.display.get_size())
         try:
             texto = TextScreen(screen_id, cfg)
             if texto._lineas:
@@ -62,5 +83,5 @@ class ScreenManager:
                     done = True
             if screen.update(dt):
                 done = True
-            screen.draw(self.display)
-            pygame.display.flip()
+            screen.draw(_display_buffer())
+            _display_present()

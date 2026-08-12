@@ -1,5 +1,6 @@
 import pygame
 from configs import *
+from display import present as _display_present
 
 
 class TradeMenu:
@@ -42,4 +43,4 @@ class TradeMenu:
             deuda_rect = deuda.get_rect(center=(ANCHO//2, ALTO - 50))
             pantalla.blit(deuda, deuda_rect)
 
-        pygame.display.flip()
+        _display_present()
