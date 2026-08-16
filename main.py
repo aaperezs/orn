@@ -643,7 +643,9 @@ while True:
             continue
 
         if estado.mostrando_inventario:
-            ui.mostrar_inventario(pantalla, estado.habilidades)
+            ui.mostrar_inventario(pantalla, estado)
+            _display_present()
+            reloj.tick(10)
             continue
 
         # --- GAME OVER ---

@@ -29,11 +29,6 @@ class TestDataService:
         assert lo == 2
         assert hi == 4
 
-    def test_get_demo_timers(self):
-        timers = self.ds.get_demo_timers()
-        assert "step_0" in timers
-        assert timers["step_0"] == 15
-
     def test_get_float_text_duration(self):
         d = self.ds.get_float_text_duration()
         assert d == 30

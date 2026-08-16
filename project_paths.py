@@ -17,7 +17,7 @@ def runtime_root():
     root = _project_root()
     if root:
         return root
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 def data_dir(*parts):

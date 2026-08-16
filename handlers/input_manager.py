@@ -143,10 +143,42 @@ class InputManager:
 
     def _handle_inventory(self, key):
         estado = self.estado
+        menu = estado.menu
         if key == pygame.K_ESCAPE:
             estado.mostrando_inventario = False
         elif key == pygame.K_TAB:
-            self._cycle_skill()
+            menu.cambiar_apartado(1)
+        elif key == pygame.K_LEFT:
+            menu.cambiar_apartado(-1)
+        elif key == pygame.K_RIGHT:
+            menu.cambiar_apartado(1)
+        elif key == pygame.K_UP:
+            from systems.ui.components.inventory_panels import PANELES_APARTADO
+            cls = PANELES_APARTADO.get(menu.apartado_id)
+            max_items = cls(None, None).item_count(estado) if cls else 0
+            menu.seleccion = max(0, menu.seleccion - 1)
+            if max_items > 0:
+                menu.seleccion = min(menu.seleccion, max_items - 1)
+        elif key == pygame.K_DOWN:
+            from systems.ui.components.inventory_panels import PANELES_APARTADO
+            cls = PANELES_APARTADO.get(menu.apartado_id)
+            max_items = cls(None, None).item_count(estado) if cls else 0
+            if max_items > 0:
+                menu.seleccion = (menu.seleccion + 1) % max_items
+        elif key == pygame.K_RETURN:
+            self._inventory_activate()
+
+    def _inventory_activate(self):
+        estado = self.estado
+        menu = estado.menu
+        if menu.apartado_id == "habilidades":
+            lista = estado.habilidades.inventario
+            if 0 <= menu.seleccion < len(lista):
+                hid = lista[menu.seleccion]
+                if estado.habilidades.equipar_habilidad(hid):
+                    hab = estado.habilidades.get_habilidad_equipada()
+                    if hab:
+                        estado.snake.set_skin(hab.get("efecto"))
 
     def _handle_trade(self, key):
         estado = self.estado
@@ -218,6 +250,8 @@ class InputManager:
             estado.mostrando_trueque = not estado.mostrando_trueque
         elif action == "TOGGLE_INVENTORY":
             estado.mostrando_inventario = not estado.mostrando_inventario
+            if estado.mostrando_inventario:
+                estado.menu.abrir()
         elif action == "TOGGLE_GODMODE":
             estado.god_mode = not estado.god_mode
             msg = "DEBUG: God Mode ON" if estado.god_mode else "DEBUG: God Mode OFF"

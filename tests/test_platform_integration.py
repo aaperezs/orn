@@ -22,13 +22,13 @@ class TestTemplateSystem:
         templates = list_templates()
         assert len(templates) >= 1
         ids = [t["id"] for t in templates]
-        assert "empty_rpg" in ids
+        assert "snake_rpg" in ids
 
     def test_create_project(self):
         from editor.project import create_project
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "test_game")
-            result = create_project("empty_rpg", "Test Game", path)
+            result = create_project("snake_rpg", "Test Game", path)
             assert result == path
             assert os.path.exists(os.path.join(path, "cururo.json"))
             assert os.path.exists(os.path.join(path, "scripts", "game.py"))
@@ -43,14 +43,20 @@ class TestTemplateSystem:
 
 class TestBehaviorsData:
     def test_behaviors_load_hardcoded(self):
-        from editor.behaviors import BEHAVIORS, get_behavior_list
-        assert len(BEHAVIORS) >= 10
-        items = get_behavior_list()
-        ids = [i[0] for i in items]
-        assert "bloqueante" in ids
+        from editor.project import set_current_project, create_project
+        from editor.behaviors import _load, BEHAVIORS, get_behavior_list
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "test_beh_hard")
+            create_project("snake_rpg", "Test", path)
+            set_current_project(path)
+            _load()
+            assert len(BEHAVIORS) >= 10
+            items = get_behavior_list()
+            ids = [i[0] for i in items]
+            assert "bloqueante" in ids
 
     def test_behaviors_json_exists(self):
-        path = os.path.join(_project_root, "orm", "data", "behaviors.json")
+        path = os.path.join(_project_root, "data", "behaviors.json")
         assert os.path.exists(path)
         with open(path) as f:
             data = json.load(f)
@@ -63,7 +69,7 @@ class TestBehaviorsData:
         from editor.behaviors import _load, get_behaviors
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "test_beh")
-            create_project("empty_rpg", "Test", path)
+            create_project("snake_rpg", "Test", path)
             set_current_project(path)
             _load()
             behs = get_behaviors()
@@ -125,7 +131,7 @@ class TestRuntimeAPI:
         from editor.project import create_project
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "test_loader")
-            create_project("empty_rpg", "Test", path)
+            create_project("snake_rpg", "Test", path)
             mod = load_script(path, "game")
             assert mod is not None
             assert hasattr(mod, "game")

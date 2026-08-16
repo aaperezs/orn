@@ -1,0 +1,12 @@
+{
+  "apartados": [
+    { "id": "habilidades", "nombre": "Habilidades" },
+    { "id": "items", "nombre": "Items" },
+    { "id": "equipo", "nombre": "Equipo" }
+  ],
+  "slots_equipo": [
+    { "id": "cabeza", "nombre": "Cabeza" },
+    { "id": "cuello", "nombre": "Cuello" },
+    { "id": "cola", "nombre": "Cola" }
+  ]
+}

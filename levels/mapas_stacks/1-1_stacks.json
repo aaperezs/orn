@@ -448,7 +448,7 @@
               "tipo": "escamas",
               "params": {
                 "operador": ">=",
-                "valor": 100
+                "valor": 1
               }
             }
           ],

@@ -43,5 +43,5 @@ class UI:
     def mostrar_pausa(self, pantalla):
         self._pause.draw(pantalla)
 
-    def mostrar_inventario(self, pantalla, habilidades):
-        self._inventory.draw(pantalla, habilidades)
+    def mostrar_inventario(self, pantalla, estado):
+        self._inventory.draw(pantalla, estado)

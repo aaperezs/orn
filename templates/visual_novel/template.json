@@ -1,0 +1,74 @@
+{
+  "id": "visual_novel",
+  "nombre": "Visual Novel",
+  "descripcion": "Escena de diálogo con branching y fondos",
+  "tamano_mapa": [40, 30],
+  "hierba_alta": [],
+  "bloqueantes": [],
+  "paredes": [],
+  "bloques_acero": [],
+  "suelos": [],
+  "decorativos": [],
+  "eventos_zona": [],
+  "grid_por_capa": {
+    "0": {}
+  },
+  "stacks": {
+    "0:0:0": {
+      "eventos": [
+        {
+          "id": "inicio",
+          "activo": true,
+          "x": 0,
+          "y": 0,
+          "ancho": 40,
+          "alto": 30,
+          "trigger": "auto",
+          "acciones": [
+            {
+              "tipo": "cambiar_fondo",
+              "params": {"sprite_id": "fondo_ejemplo"}
+            },
+            {
+              "tipo": "mostrar_personaje",
+              "params": {"personaje_id": "runa", "posicion": "centro", "expresion": "feliz"}
+            },
+            {
+              "tipo": "dialogo_inline",
+              "params": {
+                "quien": "Narrador",
+                "lineas": [
+                  "Bienvenido a la escena de ejemplo.",
+                  "Usa la pestaña \"Script\" para añadir acciones VN.",
+                  "Con {flag:nombre_del_jugador}, puedes insertar flags en el texto."
+                ]
+              }
+            },
+            {
+              "tipo": "mostrar_opciones",
+              "params": {
+                "opciones": [
+                  {
+                    "texto": "Continuar la historia",
+                    "acciones": [
+                      {"tipo": "set_flag", "params": {"flag": "historia_iniciada", "valor": true}},
+                      {"tipo": "dialogo_inline", "params": {"quien": "Narrador", "lineas": ["¡La aventura comienza!"]}}
+                    ]
+                  },
+                  {
+                    "texto": "Salir del modo VN",
+                    "acciones": [
+                      {"tipo": "set_flag", "params": {"flag": "modo_vn", "valor": false}},
+                      {"tipo": "cambiar_fondo", "params": {"sprite_id": ""}},
+                      {"tipo": "ocultar_todos_personajes", "params": {}}
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

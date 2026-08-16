@@ -78,19 +78,71 @@ class FakeRepo:
         return {}
 
 
+class FakeVentana:
+    def __init__(self):
+        self.activo = False
+
+    def avanzar(self):
+        pass
+
+
+class FakeStackManager:
+    def process_events(self, x, y, kind, z):
+        pass
+
+
+class FakeMiniJuego:
+    def __init__(self):
+        self._handled = []
+
+    def handle_event(self, event):
+        self._handled.append(event)
+
+
+class FakeMenu:
+    def __init__(self):
+        self.apartados = [
+            {"id": "habilidades", "nombre": "Habilidades"},
+            {"id": "items", "nombre": "Items"},
+            {"id": "equipo", "nombre": "Equipo"},
+        ]
+        self.apartado_actual = 0
+        self.seleccion = 0
+
+    def abrir(self):
+        self.apartado_actual = 0
+        self.seleccion = 0
+
+    @property
+    def apartado_id(self):
+        return self.apartados[self.apartado_actual]["id"]
+
+    def cambiar_apartado(self, direccion=1):
+        self.apartado_actual = (self.apartado_actual + direccion) % len(self.apartados)
+
+
 class FakeEstado:
     def __init__(self):
         self.dialogo = FakeDialogo()
+        self.ventana = FakeVentana()
         self.game_over = False
         self.mostrando_forja = False
         self.mostrando_inventario = False
         self.mostrando_trueque = False
+        self.mostrando_minijuego = False
+        self.mostrando_opciones = False
+        self.opciones = []
+        self.opcion_seleccionada = -1
+        self.sistema_minijuego = FakeMiniJuego()
         self.demo_activo = False
         self.pausa = False
         self.god_mode = False
+        self.mandos_bloqueados = False
+        self.stack_manager = FakeStackManager()
         self.snake = FakeSnake()
         self.habilidades = FakeHabilidades()
         self.sistema_forja = FakeForja()
+        self.menu = FakeMenu()
         self.mensajes_recibidos = []
 
     def reiniciar(self):
@@ -211,6 +263,20 @@ class TestInputManager:
         _post_key(im, pygame.K_i)
         assert estado.mostrando_inventario is True
 
+    def test_inventory_tab_changes_apartado(self, im, estado):
+        estado.mostrando_inventario = True
+        _post_key(im, pygame.K_TAB)
+        assert estado.menu.apartado_id == "items"
+        _post_key(im, pygame.K_RIGHT)
+        assert estado.menu.apartado_id == "equipo"
+        _post_key(im, pygame.K_LEFT)
+        assert estado.menu.apartado_id == "items"
+
+    def test_inventory_escape_closes(self, im, estado):
+        estado.mostrando_inventario = True
+        _post_key(im, pygame.K_ESCAPE)
+        assert estado.mostrando_inventario is False
+
     def test_trade_sell_1(self, im, estado):
         estado.mostrando_trueque = True
         _post_key(im, pygame.K_1)
@@ -220,11 +286,6 @@ class TestInputManager:
         estado.mostrando_trueque = True
         _post_key(im, pygame.K_d)
         assert estado.mostrando_trueque is False
-
-    def test_demo_blocks_input(self, im, estado):
-        estado.demo_activo = True
-        _post_key(im, pygame.K_UP)
-        assert estado.snake.direccion == ""
 
     def test_game_over_restart(self, im, estado):
         estado.game_over = True

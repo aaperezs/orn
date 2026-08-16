@@ -11,6 +11,7 @@ from services.text_service import TextService
 from systems.dialogo import DialogoSystem
 from systems.event_bus import BusEventos
 from systems.habilidades import SistemaHabilidades
+from systems.menu import MenuSystem
 from systems.particles import ParticleSystem
 from systems.stack_manager import StackManager
 from systems.text_screen_player import TextScreenPlayer
@@ -42,6 +43,7 @@ class GameState:
         self.level_manager = LevelManager()
         self.particles = ParticleSystem()
         self.habilidades = SistemaHabilidades()
+        self.menu = MenuSystem()
         self.event_bus = BusEventos()
         self.stack_manager = StackManager(self)
         self.flags = FlagsManager()
