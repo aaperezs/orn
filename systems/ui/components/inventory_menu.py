@@ -1,7 +1,7 @@
 import pygame
 from configs import ALTO, ANCHO
 from systems.ui.components.base import dibujar_marco_madera, dibujar_runas, panel_tallado
-from systems.ui.components.inventory_panels import PANELES_APARTADO
+from systems.ui.components.inventory_panels import PANELES_APARTADO, RENDERERS
 
 
 class InventoryMenu:
@@ -11,10 +11,12 @@ class InventoryMenu:
         self.fuente_pequena = fuente_pequena
 
     def _panel_activo(self, estado):
-        cls = PANELES_APARTADO.get(estado.menu.apartado_id)
+        cls = RENDERERS.get(estado.menu.apartado_tipo)
+        if not cls:
+            cls = PANELES_APARTADO.get(estado.menu.apartado_id)
         if not cls:
             return None
-        return cls(self.fuente, self.fuente_pequena)
+        return cls(self.fuente, self.fuente_pequena, config=estado.menu.apartado_config)
 
     def draw(self, pantalla, estado):
         overlay = pygame.Surface((ANCHO, ALTO))
@@ -39,7 +41,7 @@ class InventoryMenu:
 
         tit_rect = pygame.Rect(int_rect.centerx - 180, int_rect.top + 8, 360, 36)
         panel_tallado(pantalla, tit_rect, (80, 55, 30), (120, 80, 45))
-        titulo = self.fuente_grande.render("INVENTARIO", True, (220, 190, 120))
+        titulo = self.fuente_grande.render(estado.menu.titulo or "INVENTARIO", True, (220, 190, 120))
         tit_rect_txt = titulo.get_rect(center=tit_rect.center)
         pantalla.blit(titulo, tit_rect_txt)
 
@@ -78,6 +80,6 @@ class InventoryMenu:
             pantalla.blit(txt, txt_rect)
 
         inst = self.fuente_pequena.render(
-            "TAB: Apartado   UP/DOWN: Elegir   ENTER: Equipar   ESC: Cerrar", True, (100, 130, 80))
+            "TAB: Apartado   UP/DOWN: Elegir   ENTER: Usar   ESC: Cerrar", True, (100, 130, 80))
         inst_rect = inst.get_rect(center=(ANCHO//2, int_rect.bottom - 10))
         pantalla.blit(inst, inst_rect)

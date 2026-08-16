@@ -1,6 +1,27 @@
-from repositories import RepositorioObjetos, RepositorioRecetas
+import json
+
+from project_paths import data_dir
+from repositories import RepositorioBotin, RepositorioObjetos, RepositorioRecetas
 
 SLOTS = ["cabeza", "cuello", "cola"]
+
+_CONS_EFECTOS = {
+    "recupera_pp": "recargar_pp",
+    "crece+1": "crecer",
+}
+
+
+def _cargar_slots():
+    """Slots de equipo desde data/inventario.json (fallback SLOTS)."""
+    try:
+        with open(data_dir("inventario.json"), encoding="utf-8") as f:
+            cfg = json.load(f)
+        slots = cfg.get("slots_equipo", [])
+        if slots:
+            return [s.get("id") for s in slots]
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return SLOTS
 
 
 class Objeto:
@@ -43,6 +64,8 @@ class Inventario:
     def __init__(self):
         self._repo_objetos = RepositorioObjetos()
         self._repo_recetas = RepositorioRecetas()
+        self._repo_botin = RepositorioBotin()
+        self.slots = _cargar_slots()
         self.items = {}  # id -> Objeto (materiales)
         self.equipo = {}  # slot -> ObjetoEquipable
         self.equipados = set()  # ids de objetos equipados
@@ -75,13 +98,44 @@ class Inventario:
             del self.items[id_objeto]
         return True
 
+    def get_config(self, id_objeto):
+        """Resuelve la config de un item desde objetos.json/items.json o botin.json."""
+        config = self._repo_objetos.get_objeto(id_objeto)
+        if config:
+            return config
+        return self._repo_botin.get_evento(id_objeto)
+
+    def es_consumible(self, id_objeto):
+        """Un item es consumible si su config tiene efecto y no es un mineral."""
+        config = self.get_config(id_objeto)
+        if not config:
+            return False
+        return bool(config.get("efecto")) and config.get("tipo") != "mineral"
+
+    def usar_item(self, id_objeto, estado, cantidad=1):
+        """Usa un consumible: aplica su efecto y lo consume. Retorna True si se usó."""
+        if not self.es_consumible(id_objeto) or not self.tiene_item(id_objeto, cantidad):
+            return False
+        config = self.get_config(id_objeto)
+        efecto = config.get("efecto")
+        aplicado = False
+        if efecto and estado:
+            if efecto == "recupera_pp":
+                estado.habilidades.recargar_pp(cantidad=5)
+                aplicado = True
+            elif efecto == "crece+1":
+                estado.snake.crecer(1)
+                aplicado = True
+        self.consumir_item(id_objeto, cantidad)
+        return aplicado or True
+
     def equipar(self, id_objeto):
         """Equipa un objeto del inventario"""
         config = self._repo_objetos.get_objeto(id_objeto)
         if not config:
             return False
         slot = config.get("slot")
-        if slot not in SLOTS:
+        if slot not in self.slots:
             return False
         # Desequipar lo que haya en ese slot
         if slot in self.equipo:

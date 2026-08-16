@@ -121,6 +121,15 @@ class InputManager:
             self._handle_inventory(key)
             return
 
+        # Menus editables (data/menus.json): abrir por tecla configurada
+        menu_tecla = getattr(estado.menu, "menu_id_por_tecla", None)
+        if menu_tecla:
+            menu_id = menu_tecla(pygame.key.name(key))
+            if menu_id and hasattr(estado.menu, "abrir_menu"):
+                estado.mostrando_inventario = True
+                estado.menu.abrir_menu(menu_id)
+                return
+
         # Trade
         if estado.mostrando_trueque:
             self._handle_trade(key)
@@ -153,32 +162,97 @@ class InputManager:
         elif key == pygame.K_RIGHT:
             menu.cambiar_apartado(1)
         elif key == pygame.K_UP:
-            from systems.ui.components.inventory_panels import PANELES_APARTADO
-            cls = PANELES_APARTADO.get(menu.apartado_id)
-            max_items = cls(None, None).item_count(estado) if cls else 0
+            max_items = self._menu_item_count(estado)
             menu.seleccion = max(0, menu.seleccion - 1)
             if max_items > 0:
                 menu.seleccion = min(menu.seleccion, max_items - 1)
         elif key == pygame.K_DOWN:
-            from systems.ui.components.inventory_panels import PANELES_APARTADO
-            cls = PANELES_APARTADO.get(menu.apartado_id)
-            max_items = cls(None, None).item_count(estado) if cls else 0
+            max_items = self._menu_item_count(estado)
             if max_items > 0:
                 menu.seleccion = (menu.seleccion + 1) % max_items
         elif key == pygame.K_RETURN:
             self._inventory_activate()
+        elif key == pygame.K_x:
+            self._inventory_drop()
+
+    def _panel_cls(self, menu):
+        from systems.ui.components.inventory_panels import PANELES_APARTADO, RENDERERS
+
+        tipo = getattr(menu, "apartado_tipo", None) or getattr(menu, "apartado_id", None)
+        cls = RENDERERS.get(tipo)
+        if cls:
+            return cls
+        return PANELES_APARTADO.get(getattr(menu, "apartado_id", None))
+
+    def _menu_item_count(self, estado):
+        cls = self._panel_cls(estado.menu)
+        if not cls:
+            return 0
+        config = getattr(estado.menu, "apartado_config", {})
+        return cls(None, None, config=config).item_count(estado)
+
+    def _inventory_items_ids(self):
+        estado = self.estado
+        return [iid for iid in estado.inventario.items if estado.inventario.es_consumible(iid)]
+
+    def _inventory_drop(self):
+        estado = self.estado
+        menu = estado.menu
+        tipo = getattr(menu, "apartado_tipo", None)
+        if tipo != "lista_consumibles" and menu.apartado_id != "items":
+            return
+        lista = self._inventory_items_ids()
+        if 0 <= menu.seleccion < len(lista):
+            iid = lista[menu.seleccion]
+            estado.inventario.consumir_item(iid, 1)
+            if menu.seleccion >= len(self._inventory_items_ids()) and menu.seleccion > 0:
+                menu.seleccion -= 1
 
     def _inventory_activate(self):
         estado = self.estado
+        cls = self._panel_cls(estado.menu)
+        if not cls:
+            return
+        config = getattr(estado.menu, "apartado_config", {})
+        accion = cls(None, None, config=config).accion_seleccionada(estado)
+        if accion:
+            self._ejecutar_accion_menu(accion, estado)
+
+    def _ejecutar_accion_menu(self, accion, estado):
         menu = estado.menu
-        if menu.apartado_id == "habilidades":
-            lista = estado.habilidades.inventario
-            if 0 <= menu.seleccion < len(lista):
-                hid = lista[menu.seleccion]
-                if estado.habilidades.equipar_habilidad(hid):
-                    hab = estado.habilidades.get_habilidad_equipada()
-                    if hab:
-                        estado.snake.set_skin(hab.get("efecto"))
+        tipo = accion.get("tipo")
+        if tipo == "equipar_habilidad":
+            hid = accion.get("habilidad")
+            if estado.habilidades.equipar_habilidad(hid):
+                hab = estado.habilidades.get_habilidad_equipada()
+                if hab:
+                    estado.snake.set_skin(hab.get("efecto"))
+        elif tipo == "usar_item":
+            iid = accion.get("item")
+            if estado.inventario.usar_item(iid, estado):
+                if menu.seleccion >= len(self._inventory_items_ids()) and menu.seleccion > 0:
+                    menu.seleccion -= 1
+        elif tipo == "desequipar_slot":
+            estado.inventario.desequipar(accion.get("slot"))
+            estado.inventario.aplicar_todos_efectos(estado.snake, estado)
+        elif tipo == "equipar_slot":
+            self._equipar_slot(accion.get("slot"), estado)
+        else:
+            estado.stack_manager.ejecutar_ahora(accion)
+
+    def _equipar_slot(self, slot_id, estado):
+        inv = estado.inventario
+        if inv.get_equipado(slot_id):
+            inv.desequipar(slot_id)
+        else:
+            # Equipar el primer equipable del inventario que encaje en el slot
+            for iid in list(inv.items):
+                config = inv.get_config(iid)
+                if config and config.get("slot") == slot_id:
+                    inv.equipar(iid)
+                    inv.consumir_item(iid, 1)
+                    break
+        inv.aplicar_todos_efectos(estado.snake, estado)
 
     def _handle_trade(self, key):
         estado = self.estado
