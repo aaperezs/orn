@@ -414,6 +414,59 @@ class PanelStatsFlags(PanelApartado):
             pantalla.blit(texto_valor, rect_valor)
 
 
+class PanelStats(PanelApartado):
+    """Apartado Stats — filas {label, valor} con valor literal o referencia.
+
+    Config esperada:
+      {"stats": [{"id", "nombre", "valor"}]}
+    valor: literal, "flag:<id>" (estado.flags) o "state:<campo>" (getattr estado).
+    """
+
+    def _stats(self):
+        return self.config.get("stats", [])
+
+    def item_count(self, estado):
+        return len(self._stats(estado))
+
+    def accion_seleccionada(self, estado):
+        return None
+
+    def _valor(self, estado, ref):
+        if ref is None:
+            return ""
+        s = str(ref)
+        if s.startswith("flag:"):
+            return estado.flags.get(s[5:], 0)
+        if s.startswith("state:"):
+            return getattr(estado, s[6:], 0)
+        return s
+
+    def dibujar(self, pantalla, estado, area):
+        stats = self._stats()
+        if not stats:
+            txt = self.fuente.render("Sin datos", True, (120, 120, 120))
+            txt_rect = txt.get_rect(center=(area.centerx, area.centery))
+            pantalla.blit(txt, txt_rect)
+            return
+
+        paso = 40
+        sel = estado.menu.seleccion
+        for i, st in enumerate(stats):
+            y_pos = area.top + i * paso
+            if i == sel:
+                item_rect = pygame.Rect(area.left, y_pos, area.width, paso - 4)
+                panel_tallado(pantalla, item_rect, (40, 60, 30), (120, 150, 90))
+
+            nombre = st.get("nombre", st.get("id", ""))
+            valor = self._valor(estado, st.get("valor"))
+            texto_nombre = self.fuente.render(nombre, True, (180, 200, 160))
+            pantalla.blit(texto_nombre, (area.left + 10, y_pos + 6))
+
+            texto_valor = self.fuente.render(str(valor), True, (200, 190, 140))
+            rect_valor = texto_valor.get_rect(right=area.right - 10, top=y_pos + 6)
+            pantalla.blit(texto_valor, rect_valor)
+
+
 # Registro por tipo de renderer (data/menus.json -> apartados[].tipo)
 RENDERERS = {
     "lista_habilidades": PanelHabilidades,
@@ -423,6 +476,7 @@ RENDERERS = {
     "opciones": PanelLista,
     "controles": PanelControles,
     "stats_flags": PanelStatsFlags,
+    "stats": PanelStats,
 }
 
 # Registro por id de apartado (retro-compat data/inventario.json)

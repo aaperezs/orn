@@ -642,6 +642,12 @@ class StackManager:
                 estado.gate_salida_id = exit_id if exit_id else None
                 estado.cambiando_nivel = True
 
+        elif accion == "abrir_menu":
+            menu_id = params.get("menu_id", "")
+            if menu_id and hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
+                estado.mostrando_inventario = True
+                estado.menu.abrir_menu(menu_id)
+
         elif accion == "give_item":
             item = params.get("item", "")
             cantidad = int(params.get("cantidad", 1))
