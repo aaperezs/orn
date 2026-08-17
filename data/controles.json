@@ -1,11 +1,32 @@
 {
   "controles": [
-    { "accion": "Moverse", "tecla": "Flechas" },
-    { "accion": "Interactuar", "tecla": "E" },
-    { "accion": "Habilidad", "tecla": "Q" },
-    { "accion": "Inventario", "tecla": "I" },
-    { "accion": "Forja", "tecla": "F" },
-    { "accion": "Trueque", "tecla": "T" },
-    { "accion": "Pausa", "tecla": "P" }
+    {
+      "accion": "Moverse",
+      "tecla": "Flechas"
+    },
+    {
+      "accion": "Interactuar",
+      "tecla": "E"
+    },
+    {
+      "accion": "Habilidad",
+      "tecla": "Q"
+    },
+    {
+      "accion": "Inventario",
+      "tecla": "I"
+    },
+    {
+      "accion": "Forja",
+      "tecla": "F"
+    },
+    {
+      "accion": "Trueque",
+      "tecla": "T"
+    },
+    {
+      "accion": "Pausa",
+      "tecla": "P"
+    }
   ]
 }

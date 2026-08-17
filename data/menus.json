@@ -7,18 +7,18 @@
       "apartados": [
         {
           "id": "habilidades",
-          "nombre": "Habilidades",
-          "tipo": "lista_habilidades"
+          "nombre": "Equipo",
+          "tipo": "equipo"
         },
         {
           "id": "items",
           "nombre": "Habilidades",
-          "tipo": "lista_consumibles"
+          "tipo": "lista_habilidades"
         },
         {
           "id": "equipo",
-          "nombre": "Habilidades",
-          "tipo": "equipo"
+          "nombre": "Items",
+          "tipo": "lista_consumibles"
         }
       ]
     },

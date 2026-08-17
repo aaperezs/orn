@@ -5,4 +5,5 @@ from .repositorio_jefes import RepositorioJefes
 from .repositorio_objetos import RepositorioObjetos
 from .repositorio_recetas import RepositorioRecetas
 from .repositorio_botin import RepositorioBotin
+from .repositorio_monedas import RepositorioMonedas
 

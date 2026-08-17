@@ -16,6 +16,8 @@ from systems.particles import ParticleSystem
 from systems.stack_manager import StackManager
 from systems.text_screen_player import TextScreenPlayer
 from runtime.flags import FlagsManager
+from runtime.monedas import MonedasManager
+from repositories import RepositorioMonedas
 
 import pygame
 
@@ -47,6 +49,7 @@ class GameState:
         self.event_bus = BusEventos()
         self.stack_manager = StackManager(self)
         self.flags = FlagsManager()
+        self.monedas = MonedasManager(RepositorioMonedas().get_definiciones())
         self.dialogo = DialogoSystem(flags=self.flags)
         self.ventana = TextScreenPlayer()
         self.camera = Camera(ANCHO, ALTO)

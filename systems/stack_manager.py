@@ -102,6 +102,16 @@ class StackManager:
                             cond["tipo"] = "pp"
                             p["operador"] = ">="
                             p["valor"] = p.pop("min", 1)
+                    # Migrar condición legacy "escamas" -> has_moneda (moneda="escamas")
+                    for cond in ev.get("condiciones", []):
+                        if cond.get("tipo") == "escamas":
+                            cond["tipo"] = "has_moneda"
+                            cond.setdefault("params", {}).setdefault("moneda", "escamas")
+                    # Migrar acción legacy "remove_escamas" -> remove_moneda
+                    for accion in ev.get("acciones", []):
+                        if accion.get("tipo") == "remove_escamas":
+                            accion["tipo"] = "remove_moneda"
+                            accion.setdefault("params", {}).setdefault("moneda", "escamas")
                 s["eventos"] = eventos
                 key = (pos[0], pos[1], z)
                 self._stacks[key] = s
@@ -312,6 +322,13 @@ class StackManager:
                 if not self._eval(actual, op, int(valor)):
                     return False
 
+            elif ct == "has_moneda":
+                actual = self._moneda_valor(params.get("moneda", ""))
+                if actual is None:
+                    return False
+                if not self._eval(actual, op, int(valor)):
+                    return False
+
             elif ct == "item_count":
                 item = params.get("item", "")
                 if not hasattr(estado, "inventario"):
@@ -411,6 +428,35 @@ class StackManager:
         if op == "==": return actual == esperado
         if op == "!=": return actual != esperado
         return True
+
+    # ── Monedas (contadores de primera clase) ──────────────
+    # La moneda orm "escamas" sigue ligada a la snake (shim). Otras monedas
+    # usan game_state.monedas. El desacople de "escamas == largo" es un tema aparte.
+
+    def _moneda_valor(self, mid):
+        estado = self.estado
+        if mid == "escamas" and hasattr(estado, "snake"):
+            return estado.snake.get_escamas()
+        if hasattr(estado, "monedas"):
+            if mid in estado.monedas.ids():
+                return estado.monedas.get(mid, 0)
+        return None
+
+    def _moneda_dar(self, mid, cantidad):
+        estado = self.estado
+        if mid == "escamas" and hasattr(estado, "snake"):
+            estado.snake.crecer(cantidad)
+            return
+        if hasattr(estado, "monedas"):
+            estado.monedas.dar(mid, cantidad)
+
+    def _moneda_quitar(self, mid, cantidad):
+        estado = self.estado
+        if mid == "escamas" and hasattr(estado, "snake"):
+            estado.snake.perder_escamas(cantidad)
+            return
+        if hasattr(estado, "monedas"):
+            estado.monedas.quitar(mid, cantidad)
 
     # ── Árbol de diálogo ──────────────────────────────────
 
@@ -707,6 +753,14 @@ class StackManager:
             cantidad = int(params.get("cantidad", 1))
             if hasattr(estado, "snake"):
                 estado.snake.perder_escamas(cantidad)
+
+        elif accion == "give_moneda":
+            self._moneda_dar(params.get("moneda", ""),
+                             int(params.get("cantidad", 1)))
+
+        elif accion == "remove_moneda":
+            self._moneda_quitar(params.get("moneda", ""),
+                                int(params.get("cantidad", 1)))
 
         elif accion == "damage":
             cantidad = int(params.get("cantidad", 1))
