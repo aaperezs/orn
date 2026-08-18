@@ -94,51 +94,24 @@ class ObjetoBloqueante(ObjetoColision):
         if not self.activo:
             return
 
-        direccion = snake.direccion
-        nueva_x = self.x
-        nueva_y = self.y
-
-        if direccion == "ARRIBA":
-            nueva_y = self.y + TAMANO_CELDA
-        elif direccion == "ABAJO":
-            nueva_y = self.y - TAMANO_CELDA
-        elif direccion == "IZQUIERDA":
-            nueva_x = self.x + TAMANO_CELDA
-        elif direccion == "DERECHA":
-            nueva_x = self.x - TAMANO_CELDA
-
-        for obj in self._iter_chain_objects(estado):
-            if obj is not self and obj.activo and obj.x == nueva_x and obj.y == nueva_y:
-                if direccion == "ARRIBA":
-                    nueva_y += TAMANO_CELDA
-                elif direccion == "ABAJO":
-                    nueva_y -= TAMANO_CELDA
-                elif direccion == "IZQUIERDA":
-                    nueva_x += TAMANO_CELDA
-                elif direccion == "DERECHA":
-                    nueva_x -= TAMANO_CELDA
-                break
-
-        if snake.body:
-            dx = nueva_x - snake.body[0][0]
-            dy = nueva_y - snake.body[0][1]
-            for segmento in snake.body:
-                segmento[0] += dx
-                segmento[1] += dy
+        # La cabeza ya entró a la celda bloqueada en el mover(). Para
+        # enroscarse en el lugar, hay que devolverla a la celda de donde
+        # venía (body[1] siempre es la posición previa de la cabeza) y
+        # consumir un segmento. Antes se desplazaba TODO el cuerpo por
+        # (dx, dy), lo que "rebotaba" la orm una celda más lejos de la
+        # pared (la cola caía a la fila siguiente).
+        # Ojo: este pop es SOLO visual; la longitud (escamas) permanente
+        # no cambia por enroscarse (se restaura al desenroscar).
+        if snake.body and len(snake.body) > 1:
+            snake.body.pop(0)
 
         snake.estado_actual = estado
         snake.enroscar(
-            posicion=snake.body[0],
+            posicion=snake.body[0] if snake.body else None,
             duracion=20,
             estado=estado
         )
         return "bloqueado"
-
-    def _iter_chain_objects(self, estado):
-        for coleccion in ("bloqueantes", "bloques_acero", "paredes"):
-            for obj in getattr(estado, coleccion, []):
-                if isinstance(obj, ObjetoBloqueante):
-                    yield obj
 
 
 class ObjetoPeligroso(ObjetoColision):

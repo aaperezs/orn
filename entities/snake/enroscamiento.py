@@ -24,7 +24,6 @@ class EnroscamientoMixin:
             self.segmentos_visibles.pop()
             self.segmentos_enroscados += 1
             self.body = self.segmentos_visibles.copy()
-            self.longitud = len(self.body)
 
     def _iniciar_desenroscamiento(self):
         self.etapa = 2
@@ -37,7 +36,6 @@ class EnroscamientoMixin:
 
         self.segmentos_a_restaurar = max(0, longitud_perdida - 1)
         self.creciendo = (self.segmentos_a_restaurar > 0)
-        self.longitud = len(self.body)
 
         self._restablecer_estado_post_enroscado()
 
@@ -55,12 +53,14 @@ class EnroscamientoMixin:
             self.direcciones_permitidas = ["ARRIBA", "ABAJO"]
 
     def _calcular_longitud_inicial(self):
-        if self.segmentos_a_restaurar > 0:
-            self.largo_original = len(self.body) + self.segmentos_a_restaurar
-            self.segmentos_a_restaurar = 0
-            self.creciendo = False
-        else:
-            self.largo_original = len(self.body)
+        # La longitud (escamas + LONGITUD_INICIAL) es el tamaño PERMANENTE
+        # de la orm. Enroscarse/desenroscarse solo cambia el cuerpo visual;
+        # el largo a restaurar es siempre el permanente, sin importar en qué
+        # punto del ciclo esté el cuerpo (incluso si re-enroscás a mitad de
+        # la restauración, nunca se pierden escamas).
+        self.largo_original = self.longitud
+        self.segmentos_a_restaurar = 0
+        self.creciendo = False
 
     def _calcular_proxima_cabeza(self):
         cabeza = self.body[0].copy()

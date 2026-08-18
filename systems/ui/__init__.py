@@ -31,8 +31,8 @@ class UI:
                 continue
         return pygame.font.Font(None, tam)
 
-    def dibujar(self, pantalla, snake, comida=None, mensaje=None):
-        self._hud.draw(pantalla, snake, mensaje)
+    def dibujar(self, pantalla, snake, comida=None, mensaje=None, monedas=None):
+        self._hud.draw(pantalla, snake, mensaje, monedas)
 
     def mostrar_menu_trueque(self, pantalla, snake):
         self._trade.draw(pantalla, snake)

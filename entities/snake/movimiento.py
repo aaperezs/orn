@@ -67,7 +67,6 @@ class MovimientoMixin:
         self.direccion = self.siguiente_direccion
         self.body.insert(0, self._calcular_nueva_cabeza())
         self._gestionar_crecimiento()
-        self.longitud = len(self.body)
 
     def _calcular_nueva_cabeza(self):
         cabeza = self.body[0].copy()

@@ -287,7 +287,8 @@ def dibujar():
                 px = {0: 100, 1: ANCHO // 2 - sp_char.get_width() // 2, 2: ANCHO - 100 - sp_char.get_width()}.get(info["posicion"], ANCHO // 2 - sp_char.get_width() // 2)
                 py = ALTO - sp_char.get_height() - 40
                 pantalla.blit(sp_char, (px, py))
-        ui.dibujar(pantalla, estado.snake, estado.comida, estado.mensaje_temporal)
+        ui.dibujar(pantalla, estado.snake, estado.comida, estado.mensaje_temporal,
+                   estado.monedas)
         if estado.mostrando_opciones:
             choice_box.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada)
         return
@@ -430,7 +431,8 @@ def dibujar():
         surf.blit(txt, (30 - txt.get_width() // 2, 0))
         pantalla.blit(surf, (tf["x"] + ox - 30, tf["y"] + oy))
 
-    ui.dibujar(pantalla, estado.snake, estado.comida, estado.mensaje_temporal)
+    ui.dibujar(pantalla, estado.snake, estado.comida, estado.mensaje_temporal,
+               estado.monedas)
     estado.habilidades.dibujar_ui(pantalla)
 
     fuente = pygame.font.SysFont("Arial", 12)
