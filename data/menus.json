@@ -19,6 +19,11 @@
           "id": "equipo",
           "nombre": "Items",
           "tipo": "lista_consumibles"
+        },
+        {
+          "id": "key_items",
+          "nombre": "Objetos Clave",
+          "tipo": "objetos_clave"
         }
       ]
     },
@@ -40,24 +45,26 @@
             {
               "id": "resolucion",
               "nombre": "Resolución",
-              "descripcion": "Tamaño de ventana (pendiente)",
-              "accion": {
-                "tipo": "show_message",
-                "params": {
-                  "mensaje": "Cambio de resolución próximamente"
-                }
-              }
+              "descripcion": "Tamaño de ventana",
+              "opciones": [
+                {"nombre": "1280×720", "params": {"ancho": 1280, "alto": 720}},
+                {"nombre": "960×720", "params": {"ancho": 960, "alto": 720}},
+                {"nombre": "800×600", "params": {"ancho": 800, "alto": 600}}
+              ],
+              "accion": {"tipo": "set_resolution", "params": {}}
             },
             {
               "id": "volumen",
               "nombre": "Volumen",
-              "descripcion": "Volumen del audio (pendiente)",
-              "accion": {
-                "tipo": "show_message",
-                "params": {
-                  "mensaje": "Volumen próximamente"
-                }
-              }
+              "descripcion": "Volumen del audio",
+              "opciones": [
+                {"nombre": "0%", "params": {"volumen": 0.0}},
+                {"nombre": "25%", "params": {"volumen": 0.25}},
+                {"nombre": "50%", "params": {"volumen": 0.5}},
+                {"nombre": "75%", "params": {"volumen": 0.75}},
+                {"nombre": "100%", "params": {"volumen": 1.0}}
+              ],
+              "accion": {"tipo": "set_volume", "params": {}}
             }
           ]
         }

@@ -72,6 +72,8 @@ class GameState:
         self.snake_ctx = SnakeContext(snake)
         self.world = WorldState()
         self.world.cargar_entidades_nivel(nivel)
+        self.camera = Camera(self.world.nivel_ancho, self.world.nivel_alto)
+        self.camera.snap_to(inicio_x, inicio_y)
         self.world.inicializar_arena_boss(nivel, self.level_manager)
         self.world.crear_portal_boss(snake)
         if nivel['comidas']:
@@ -271,6 +273,8 @@ class GameState:
             print(f"  CAMBIAR_NIVEL bloqueante[{i}] x={r.x} y={r.y} tipo={getattr(r,'tipo','?')}")
         self.world.limpiar_persistencia_nivel(nivel_id)
         self.camera = Camera(self.world.nivel_ancho, self.world.nivel_alto)
+        # Posicionar cámara en la ubicación inicial del snake (sin suavizado)
+        self.camera.snap_to(inicio_x, inicio_y)
         self.world.inicializar_arena_boss(nivel, self.level_manager)
 
         self.world.crear_portal_boss(self.snake)

@@ -158,9 +158,11 @@ class InputManager:
         elif key == pygame.K_TAB:
             menu.cambiar_apartado(1)
         elif key == pygame.K_LEFT:
-            menu.cambiar_apartado(-1)
+            if not self._cycle_opcion(estado, -1):
+                menu.cambiar_apartado(-1)
         elif key == pygame.K_RIGHT:
-            menu.cambiar_apartado(1)
+            if not self._cycle_opcion(estado, 1):
+                menu.cambiar_apartado(1)
         elif key == pygame.K_UP:
             max_items = self._menu_item_count(estado)
             menu.seleccion = max(0, menu.seleccion - 1)
@@ -207,6 +209,38 @@ class InputManager:
             estado.inventario.consumir_item(iid, 1)
             if menu.seleccion >= len(self._inventory_items_ids()) and menu.seleccion > 0:
                 menu.seleccion -= 1
+
+    def _cycle_opcion(self, estado, direccion):
+        """Cicla la opción del ítem seleccionado si tiene `opciones` y aplica la acción.
+
+        Retorna True si cicló (el ítem tenía opciones); False si no, para que
+        LEFT/RIGHT sigan cambiando de apartado como antes.
+        """
+        menu = estado.menu
+        cls = self._panel_cls(menu)
+        if not cls:
+            return False
+        config = getattr(menu, "apartado_config", {})
+        panel = cls(None, None, config=config)
+        items = panel._items(estado) if hasattr(panel, "_items") else []
+        if not (0 <= menu.seleccion < len(items)):
+            return False
+        it = items[menu.seleccion]
+        opciones = it.get("opciones")
+        if not opciones:
+            return False
+        indices = getattr(menu, "opcion_indices", {})
+        item_id = it.get("id", "")
+        key = item_id if item_id else f"@{menu.seleccion}"
+        idx = indices.get(key)
+        if idx is None:
+            # Primer press: partir del índice persistido (match con user_prefs),
+            # no de 0 (evita salto al último con LEFT).
+            idx = panel._indice_opcion(it, estado)
+        idx = (idx + direccion) % len(opciones)
+        indices[key] = idx
+        self._inventory_activate()
+        return True
 
     def _inventory_activate(self):
         estado = self.estado

@@ -22,6 +22,7 @@ CATEGORIAS = {
             "give_escamas",
             "remove_escamas",
             "damage",
+            "examinar_key_item",
         ],
     },
     "habilidades": {

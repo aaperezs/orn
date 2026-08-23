@@ -60,6 +60,14 @@ def setup(window_size=None, fullscreen=False):
     return buffer
 
 
+def set_window_size(size):
+    """Recrea la ventana con el nuevo tamaño (clamped al escritorio). No toca el buffer lógico."""
+    global _real
+    if _real is None or _stretch:
+        return  # sin ventana o fullscreen: no-op
+    _real = pygame.display.set_mode(_tamano_ventana(size))
+
+
 def present():
     """Vuelca el buffer a la ventana con letterbox (escala uniforme, contenido centrado).
 

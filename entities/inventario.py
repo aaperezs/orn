@@ -112,6 +112,19 @@ class Inventario:
             return False
         return bool(config.get("efecto")) and config.get("tipo") != "mineral"
 
+    def es_key_item(self, id_objeto):
+        """Un item es un objeto clave si su tipo es 'objeto_clave'."""
+        config = self.get_config(id_objeto)
+        return config.get("tipo") == "objeto_clave" if config else False
+
+    def get_key_items(self):
+        """Devuelve dict {id: Objeto} de items con tipo 'objeto_clave'."""
+        return {iid: obj for iid, obj in self.items.items() if self.es_key_item(iid)}
+
+    def tiene_key_item(self, id_objeto):
+        """Verifica si tiene un objeto clave específico."""
+        return id_objeto in self.get_key_items()
+
     def usar_item(self, id_objeto, estado, cantidad=1):
         """Usa un consumible: aplica su efecto y lo consume. Retorna True si se usó."""
         if not self.es_consumible(id_objeto) or not self.tiene_item(id_objeto, cantidad):

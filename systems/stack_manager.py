@@ -701,10 +701,26 @@ class StackManager:
                 estado.inventario.agregar_item(item, cantidad)
                 repo = RepositorioObjetos()
                 cfg = repo.get_objeto(item)
+                es_clave = cfg.get("tipo") == "objeto_clave" if cfg else False
                 nombre = cfg.get("nombre", item) if cfg else item
-                mensaje = f"¡{nombre} x{cantidad}!"
+                if es_clave:
+                    mensaje = f"¡Obtuviste [Objeto Clave] {nombre}!"
+                    estado.tiempo_mensaje = 90
+                    if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_apartado"):
+                        estado.menu.abrir_apartado("key_items")
+                else:
+                    mensaje = f"¡{nombre} x{cantidad}!"
+                    estado.tiempo_mensaje = 60
                 estado.mensaje_temporal = mensaje
-                estado.tiempo_mensaje = 60
+
+        elif accion == "examinar_key_item":
+            item = params.get("item", "")
+            if item and hasattr(estado, "inventario"):
+                repo = RepositorioObjetos()
+                cfg = repo.get_objeto(item)
+                desc = cfg.get("descripcion", "Sin descripción") if cfg else "Sin descripción"
+                estado.mensaje_temporal = f"{desc}"
+                estado.tiempo_mensaje = 120
 
         elif accion == "remove_item":
             item = params.get("item", "")
@@ -886,6 +902,28 @@ class StackManager:
             vol = float(params.get("volumen", 1.0))
             if hasattr(estado, "audio"):
                 estado.audio.set_sfx_volume(vol)
+
+        elif accion == "set_resolution":
+            ancho = int(params.get("ancho", 0))
+            alto = int(params.get("alto", 0))
+            if ancho > 0 and alto > 0:
+                from display import set_window_size
+                set_window_size((ancho, alto))
+                from systems import user_prefs
+                prefs = user_prefs.load()
+                prefs["resolution"] = f"{ancho}x{alto}"
+                user_prefs.save(prefs)
+
+        elif accion == "set_volume":
+            vol = float(params.get("volumen", 1.0))
+            if hasattr(estado, "audio"):
+                estado.audio.set_bgm_volume(vol)
+                estado.audio.set_sfx_volume(vol)
+                from systems import user_prefs
+                prefs = user_prefs.load()
+                prefs["bgm_volume"] = vol
+                prefs["sfx_volume"] = vol
+                user_prefs.save(prefs)
 
         elif accion == "cambiar_fondo":
             sprite_id = params.get("sprite_id", "")

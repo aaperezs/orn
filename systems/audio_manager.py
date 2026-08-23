@@ -2,6 +2,7 @@ import json
 import os
 import pygame
 from project_paths import data_dir, assets_dir
+from systems.user_prefs import load as _load_prefs
 
 _RUTA = data_dir("audio.json")
 
@@ -9,8 +10,9 @@ _RUTA = data_dir("audio.json")
 class AudioManager:
     def __init__(self):
         self._config = self._load_config()
-        self._bgm_volume = 0.7
-        self._sfx_volume = 1.0
+        _prefs = _load_prefs()
+        self._bgm_volume = float(_prefs.get("bgm_volume", 0.7))
+        self._sfx_volume = float(_prefs.get("sfx_volume", 1.0))
         self._current_bgm = None
         self._sounds = {}
 

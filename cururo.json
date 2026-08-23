@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "type": "game",
   "category": "snake_rpg",
+  "graphics": {
+    "tile_size": 20,
+    "resolution": [800, 600],
+    "pixel_art_scale": 1,
+    "tileset": null
+  },
   "screens": {
     "enabled": true,
     "items": [

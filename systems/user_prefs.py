@@ -8,6 +8,8 @@ PREFS_FILE = "user_prefs.json"
 DEFAULTS = {
     "resolution": "auto",
     "fullscreen": False,
+    "bgm_volume": 0.7,
+    "sfx_volume": 1.0,
 }
 
 

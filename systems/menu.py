@@ -34,6 +34,7 @@ class MenuSystem:
         self.menu_actual = None
         self.apartado_actual = 0
         self.seleccion = 0
+        self.opcion_indices = {}  # item_id -> índice de opción seleccionada
         self._cargar()
 
     def _cargar(self):
@@ -104,6 +105,7 @@ class MenuSystem:
             self.menu_actual = self.menus[0]
         self.apartado_actual = 0
         self.seleccion = 0
+        self.opcion_indices = {}
 
     def abrir_menu(self, menu_id):
         """Abre un menú por id. Retorna True si existe."""
@@ -112,6 +114,7 @@ class MenuSystem:
                 self.menu_actual = m
                 self.apartado_actual = 0
                 self.seleccion = 0
+                self.opcion_indices = {}
                 return True
         return False
 
@@ -181,3 +184,14 @@ class MenuSystem:
             return
         self.apartado_actual = (self.apartado_actual + direccion) % len(self.apartados)
         self.seleccion = 0
+        self.opcion_indices = {}
+
+    def abrir_apartado(self, apartado_id):
+        """Abre un apartado del menú actual por su id. Retorna True si existe."""
+        for i, ap in enumerate(self.apartados):
+            if ap.get("id") == apartado_id:
+                self.apartado_actual = i
+                self.seleccion = 0
+                self.opcion_indices = {}
+                return True
+        return False

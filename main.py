@@ -33,8 +33,19 @@ if not _MODO_TEST:
     import json as _json
     try:
         with open(os.path.join(_PROJECT_PATH, "cururo.json"), encoding="utf-8") as _f:
-            _manifest_res = _json.load(_f).get("resolution", "800x600")
-        if isinstance(_manifest_res, dict):
+            _manifest_res = _json.load(_f)
+        _graphics_res = _manifest_res.get("graphics", {}).get("resolution")
+        _graphics_scale = _manifest_res.get("graphics", {}).get("pixel_art_scale", 1)
+        if not isinstance(_graphics_scale, int):
+            try:
+                _graphics_scale = int(_graphics_scale)
+            except Exception:
+                _graphics_scale = 1
+        _manifest_res = _graphics_res if _graphics_res is not None else _manifest_res.get("resolution", "800x600")
+        if isinstance(_manifest_res, (list, tuple)) and len(_manifest_res) == 2:
+            _base_w = int(_manifest_res[0])
+            _base_h = int(_manifest_res[1])
+        elif isinstance(_manifest_res, dict):
             _base_w = int(_manifest_res.get("w", 800))
             _base_h = int(_manifest_res.get("h", 600))
         else:
@@ -108,10 +119,16 @@ else:
     _prefs_size = None
     _fullscreen = _PROJECT_FULLSCREEN or _PROJECT_PLATFORM == "mobile"
 
+# Calcular window_size con pixel_art_scale si no hay prefs del usuario
+if _prefs_size is None:
+    _window_size = (_base_w * _graphics_scale, _base_h * _graphics_scale)
+else:
+    _window_size = _prefs_size
+
 from display import setup as _display_setup, present as _display_present, get_buffer as _display_buffer, set_letterbox_fill as _display_set_fill
 
 pantalla = _display_setup(
-    window_size=_prefs_size,
+    window_size=_window_size,
     fullscreen=_fullscreen,
 )
 pygame.display.set_caption(_PROJECT_TITLE or "Cururo")

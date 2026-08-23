@@ -3,6 +3,7 @@ import json
 import pygame
 from configs import ALTO, ANCHO
 from project_paths import data_dir
+from utils.sprite_manager import obtener as obtener_sprite
 from systems.ui.components.base import dibujar_marco_madera, dibujar_runas, panel_tallado
 
 
@@ -163,9 +164,19 @@ class PanelItems(PanelApartado):
                     (area.left + area.width, y_pos + 27)
                 ])
 
-            icono = config.get("icono", "●")
-            icono_txt = self.fuente.render(icono, True, (200, 190, 140))
-            pantalla.blit(icono_txt, (area.left + 10, y_pos + 4))
+            sprite_id = config.get("sprite_id", "")
+            sprite = obtener_sprite(sprite_id) if sprite_id else None
+            if sprite:
+                icono_size = 32
+                escala = min(icono_size / sprite.get_width(), icono_size / sprite.get_height())
+                sw = max(1, int(sprite.get_width() * escala))
+                sh = max(1, int(sprite.get_height() * escala))
+                s = pygame.transform.scale(sprite, (sw, sh))
+                pantalla.blit(s, (area.left + 10, y_pos + (54 - sh) // 2))
+            else:
+                icono = config.get("icono", "●")
+                icono_txt = self.fuente.render(icono, True, (200, 190, 140))
+                pantalla.blit(icono_txt, (area.left + 10, y_pos + 4))
 
             nombre = config.get("nombre", iid)
             texto_nombre = self.fuente.render(nombre, True, (180, 200, 160))
@@ -250,9 +261,19 @@ class PanelEquipo(PanelApartado):
 
             if equipado:
                 config = inv.get_config(equipado.id) or {}
-                icono = config.get("icono", "◆")
-                icono_txt = self.fuente.render(icono, True, (200, 190, 140))
-                pantalla.blit(icono_txt, (area.left + 10, y_pos + 28))
+                sprite_id = config.get("sprite_id", "")
+                sprite = obtener_sprite(sprite_id) if sprite_id else None
+                if sprite:
+                    icono_size = 24
+                    escala = min(icono_size / sprite.get_width(), icono_size / sprite.get_height())
+                    sw = max(1, int(sprite.get_width() * escala))
+                    sh = max(1, int(sprite.get_height() * escala))
+                    s = pygame.transform.scale(sprite, (sw, sh))
+                    pantalla.blit(s, (area.left + 10, y_pos + 28))
+                else:
+                    icono = config.get("icono", "◆")
+                    icono_txt = self.fuente.render(icono, True, (200, 190, 140))
+                    pantalla.blit(icono_txt, (area.left + 10, y_pos + 28))
 
                 texto_nombre = self.fuente_pequena.render(equipado.nombre, True, (180, 200, 160))
                 pantalla.blit(texto_nombre, (area.left + 48, y_pos + 28))
@@ -274,6 +295,10 @@ class PanelLista(PanelApartado):
 
     Config esperada:
       {"items": [{"id", "nombre", "descripcion", "accion": {"tipo", "params"}}]}
+
+    Un ítem puede tener `opciones` (lista de {nombre, params}): LEFT/RIGHT
+    cicla la opción y la acción se ejecuta con los params de la opción
+    seleccionada (merge sobre los params estáticos de la acción).
     """
 
     def _items(self, estado):
@@ -282,10 +307,77 @@ class PanelLista(PanelApartado):
     def item_count(self, estado):
         return len(self._items(estado))
 
+    def _match_opcion_persistida(self, it, opciones):
+        """Índice de la opción que coincide con el valor persistido en user_prefs.
+
+        - set_resolution: prefs["resolution"] ("WxH") contra params ancho/alto.
+        - set_volume: prefs["bgm_volume"]/["sfx_volume"] (float) contra params["volumen"].
+        Sin match -> 0.
+        """
+        try:
+            from systems.user_prefs import load as _load_prefs
+            prefs = _load_prefs()
+        except Exception:
+            prefs = {}
+        tipo = (it.get("accion") or {}).get("tipo", "")
+        for i, op in enumerate(opciones):
+            params = op.get("params", {})
+            if tipo == "set_resolution":
+                ancho = params.get("ancho")
+                alto = params.get("alto")
+                if ancho is not None and alto is not None:
+                    try:
+                        if prefs.get("resolution") == f"{int(ancho)}x{int(alto)}":
+                            return i
+                    except (ValueError, TypeError):
+                        pass
+            elif tipo == "set_volume":
+                vol = params.get("volumen")
+                if vol is None:
+                    continue
+                try:
+                    v = float(vol)
+                except (ValueError, TypeError):
+                    continue
+                for key in ("bgm_volume", "sfx_volume"):
+                    try:
+                        if abs(v - float(prefs.get(key, -1))) < 1e-6:
+                            return i
+                    except (ValueError, TypeError):
+                        pass
+        return 0
+
+    def _indice_opcion(self, it, estado):
+        """Índice de la opción actual del ítem (cache en menu.opcion_indices).
+
+        El schema recomienda `id` en cada ítem; si falta, se cachea con un
+        key sintético por posición de selección (fallback).
+        """
+        opciones = it.get("opciones")
+        if not opciones:
+            return 0
+        item_id = it.get("id", "")
+        indices = getattr(estado.menu, "opcion_indices", {})
+        key = item_id if item_id else f"@{estado.menu.seleccion}"
+        if key in indices:
+            return indices[key]
+        idx = self._match_opcion_persistida(it, opciones)
+        indices[key] = idx
+        return idx
+
     def accion_seleccionada(self, estado):
         items = self._items(estado)
         if 0 <= estado.menu.seleccion < len(items):
-            return items[estado.menu.seleccion].get("accion")
+            it = items[estado.menu.seleccion]
+            accion = it.get("accion")
+            if not accion:
+                return None
+            opciones = it.get("opciones")
+            if opciones:
+                idx = self._indice_opcion(it, estado)
+                op = opciones[idx]
+                return {**accion, "params": {**accion.get("params", {}), **op.get("params", {})}}
+            return accion
         return None
 
     def dibujar(self, pantalla, estado, area):
@@ -316,6 +408,11 @@ class PanelLista(PanelApartado):
                 ])
 
             nombre = it.get("nombre", it.get("id", ""))
+            opciones = it.get("opciones")
+            if opciones:
+                idx = self._indice_opcion(it, estado)
+                op = opciones[idx]
+                nombre = f"{nombre}: {op.get('nombre', '')}"
             texto_nombre = self.fuente.render(nombre, True, (180, 200, 160))
             pantalla.blit(texto_nombre, (area.left + 10, y_pos + 4))
 
@@ -467,6 +564,80 @@ class PanelStats(PanelApartado):
             pantalla.blit(texto_valor, rect_valor)
 
 
+class PanelObjetosClave(PanelApartado):
+    """Apartado Objetos Clave — llaves, items de quest, items de progresión."""
+
+    def _lista(self, estado):
+        return list(estado.inventario.get_key_items().keys())
+
+    def item_count(self, estado):
+        return len(self._lista(estado))
+
+    def accion_seleccionada(self, estado):
+        lista = self._lista(estado)
+        if 0 <= estado.menu.seleccion < len(lista):
+            return {"tipo": "examinar_key_item", "item": lista[estado.menu.seleccion]}
+        return None
+
+    def dibujar(self, pantalla, estado, area):
+        lista = self._lista(estado)
+        if not lista:
+            txt = self.fuente.render("Sin objetos clave", True, (120, 120, 120))
+            txt_rect = txt.get_rect(center=(area.centerx, area.centery))
+            pantalla.blit(txt, txt_rect)
+            return
+
+        sel = estado.menu.seleccion
+        paso = 62
+        for i, iid in enumerate(lista):
+            config = estado.inventario.get_config(iid) or {}
+            cant = estado.inventario.cantidad(iid)
+            es_seleccion = (i == sel)
+            y_pos = area.top + i * paso
+
+            item_rect = pygame.Rect(area.left, y_pos, area.width, 54)
+            if es_seleccion:
+                panel_tallado(pantalla, item_rect, (40, 60, 30), (120, 150, 90))
+            else:
+                panel_tallado(pantalla, item_rect, (25, 42, 20), (60, 70, 50))
+
+            if es_seleccion:
+                pygame.draw.polygon(pantalla, (140, 200, 120), [
+                    (area.left + area.width + 6, y_pos + 27 - 6),
+                    (area.left + area.width + 6, y_pos + 27 + 6),
+                    (area.left + area.width, y_pos + 27)
+                ])
+
+            sprite_id = config.get("sprite_id", "")
+            sprite = obtener_sprite(sprite_id) if sprite_id else None
+            if sprite:
+                icono_size = 32
+                escala = min(icono_size / sprite.get_width(), icono_size / sprite.get_height())
+                sw = max(1, int(sprite.get_width() * escala))
+                sh = max(1, int(sprite.get_height() * escala))
+                s = pygame.transform.scale(sprite, (sw, sh))
+                pantalla.blit(s, (area.left + 10, y_pos + (54 - sh) // 2))
+            else:
+                icono = config.get("icono", "🔑")
+                icono_txt = self.fuente.render(icono, True, (220, 190, 80))
+                pantalla.blit(icono_txt, (area.left + 10, y_pos + 4))
+
+            nombre = config.get("nombre", iid)
+            texto_nombre = self.fuente.render(nombre, True, (220, 200, 130))
+            pantalla.blit(texto_nombre, (area.left + 48, y_pos + 4))
+
+            if cant > 1:
+                cant_txt = self.fuente_pequena.render(f"x{cant}", True, (180, 170, 120))
+                pantalla.blit(cant_txt, (area.left + area.width - 60, y_pos + 8))
+
+            texto_desc = self.fuente_pequena.render(config.get("descripcion", ""), True, (140, 150, 130))
+            pantalla.blit(texto_desc, (area.left + 48, y_pos + 28))
+
+            if i < len(lista) - 1:
+                sep_y = y_pos + paso - 2
+                pygame.draw.line(pantalla, (40, 55, 35), (area.left + 20, sep_y), (area.left + area.width - 20, sep_y), 1)
+
+
 # Registro por tipo de renderer (data/menus.json -> apartados[].tipo)
 RENDERERS = {
     "lista_habilidades": PanelHabilidades,
@@ -477,6 +648,7 @@ RENDERERS = {
     "controles": PanelControles,
     "stats_flags": PanelStatsFlags,
     "stats": PanelStats,
+    "objetos_clave": PanelObjetosClave,
 }
 
 # Registro por id de apartado (retro-compat data/inventario.json)

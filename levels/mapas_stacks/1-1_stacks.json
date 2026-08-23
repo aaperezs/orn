@@ -489,6 +489,32 @@
       ],
       "z": 0,
       "eventos": []
+    },
+    {
+      "pos": [
+        12,
+        24
+      ],
+      "z": 2,
+      "eventos": [
+        {
+          "trigger": "contact",
+          "boss_id": "",
+          "watched_event_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "give_item",
+              "params": {
+                "item": "key_willow",
+                "cantidad": 1
+              }
+            }
+          ],
+          "once": true,
+          "id": ""
+        }
+      ]
     }
   ]
 }
