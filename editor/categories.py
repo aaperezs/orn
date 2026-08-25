@@ -25,6 +25,19 @@ CATEGORIAS = {
             "examinar_key_item",
         ],
     },
+    "tiendas": {
+        "nombre": "Tiendas",
+        "acciones": [
+            "open_shop",
+            "close_shop",
+            "increment_contador",
+            "set_contador",
+            "restock_shop",
+            "add_shop_stock",
+            "modify_shop_price",
+            "trigger_restock",
+        ],
+    },
     "habilidades": {
         "nombre": "Habilidades",
         "acciones": [

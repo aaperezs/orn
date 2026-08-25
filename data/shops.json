@@ -1,0 +1,54 @@
+{
+  "shops": [
+    {
+      "id": "shop_herrero",
+      "nombre": "Herrería del Pueblo",
+      "descripcion": "Forja y reparaciones de equipo",
+      "moneda_principal": "oro",
+      "categorias": ["arma", "armadura", "accesorio"],
+      "items": [
+        {
+          "item_id": "espada_hierro",
+          "precio": {"oro": 500, "escamas": 50},
+          "moneda_compra": "oro",
+          "stock": 3,
+          "max_stock": 3,
+          "stock_infinito": false,
+          "max_stack": 1,
+          "unlock": {
+            "tipo": "AND",
+            "condiciones": [
+              {"tipo": "flag", "flag": "herrero_conocido", "operador": "==", "valor": 1},
+              {"tipo": "contador", "contador": "jefes_derrotados", "operador": ">=", "valor": 1}
+            ]
+          },
+          "restock": {
+            "triggers": [
+              {"tipo": "evento", "evento": "derrota_jefe_2"}
+            ],
+            "cantidad": 1
+          },
+          "visible_si_bloqueado": false
+        },
+        {
+          "item_id": "pocion_vida",
+          "precio": {"oro": 50},
+          "moneda_compra": "oro",
+          "stock": 10,
+          "max_stock": 10,
+          "stock_infinito": false,
+          "max_stack": 99,
+          "unlock": null,
+          "visible_si_bloqueado": true
+        }
+      ],
+      "compra": {
+        "items_aceptados": ["*"],
+        "precios_compra": {
+          "espada_hierro": {"fragmento_antiguo": 5},
+          "pocion_vida": {"escamas": 2}
+        }
+      }
+    }
+  ]
+}

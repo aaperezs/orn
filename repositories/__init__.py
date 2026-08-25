@@ -1,4 +1,5 @@
 from .repositorio_comida import RepositorioComida
+from .repositorio_contadores import RepositorioContadores
 from .repositorio_enemigos import RepositorioEnemigos
 from .repositorio_habilidades import RepositorioHabilidades
 from .repositorio_jefes import RepositorioJefes
@@ -6,4 +7,6 @@ from .repositorio_objetos import RepositorioObjetos
 from .repositorio_recetas import RepositorioRecetas
 from .repositorio_botin import RepositorioBotin
 from .repositorio_monedas import RepositorioMonedas
+from .repositorio_save_system import RepositorioSaveSystem
+from .repositorio_saves import RepositorioSaves
 

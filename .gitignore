@@ -25,6 +25,10 @@ Thumbs.db
 .cururo/
 err.txt
 out.txt
-*.png
 test_floor.png
 test_floor3.png
+
+# Ignore loose PNGs but NOT assets/
+*.png
+!assets/**/*.png
+!assets/*.png

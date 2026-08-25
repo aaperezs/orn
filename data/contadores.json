@@ -1,0 +1,25 @@
+{
+  "contadores": [
+    {
+      "id": "jefes_derrotados",
+      "nombre": "Jefes Derrotados",
+      "inicial": 0,
+      "maximo": 999,
+      "descripcion": "Contador de jefes derrotados para progresión de tiendas"
+    },
+    {
+      "id": "reputacion_gremio",
+      "nombre": "Reputación Gremio",
+      "inicial": 0,
+      "maximo": 100,
+      "descripcion": "Reputación con el gremio de herreros"
+    },
+    {
+      "id": "orbes_activados",
+      "nombre": "Orbes Activados",
+      "inicial": 0,
+      "maximo": 10,
+      "descripcion": "Número de orbes de guardado activados"
+    }
+  ]
+}

@@ -28,6 +28,35 @@
       ]
     },
     {
+      "id": "shop",
+      "tecla": "",
+      "titulo": "TIENDA",
+      "apartados": [
+        {
+          "id": "comprar",
+          "nombre": "Comprar",
+          "tipo": "shop_comprar"
+        },
+        {
+          "id": "vender",
+          "nombre": "Vender",
+          "tipo": "shop_vender"
+        },
+        {
+          "id": "salir",
+          "nombre": "Salir",
+          "tipo": "lista",
+          "items": [
+            {
+              "id": "cerrar",
+              "nombre": "Cerrar",
+              "accion": {"tipo": "close_shop"}
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "opciones",
       "tecla": "o",
       "titulo": "OPCIONES",
@@ -89,6 +118,56 @@
               "id": "oraculo_afecto",
               "nombre": "Oráculo",
               "default": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "save",
+      "tecla": "",
+      "titulo": "GUARDAR",
+      "apartados": [
+        {
+          "id": "guardar",
+          "nombre": "Guardar",
+          "tipo": "save_slots",
+          "config": {"modo": "guardar"}
+        },
+        {
+          "id": "salir",
+          "nombre": "Salir",
+          "tipo": "lista",
+          "items": [
+            {
+              "id": "cerrar",
+              "nombre": "Cerrar",
+              "accion": {"tipo": "close_save_menu"}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "load",
+      "tecla": "",
+      "titulo": "CARGAR PARTIDA",
+      "apartados": [
+        {
+          "id": "cargar",
+          "nombre": "Cargar",
+          "tipo": "save_slots",
+          "config": {"modo": "cargar"}
+        },
+        {
+          "id": "salir",
+          "nombre": "Salir",
+          "tipo": "lista",
+          "items": [
+            {
+              "id": "cerrar",
+              "nombre": "Cerrar",
+              "accion": {"tipo": "close_save_menu"}
             }
           ]
         }

@@ -12,6 +12,9 @@ class TituloScreen(BaseScreen):
         self.display_size = display_size or (800, 600)
         self._bg = None
         self._load_bg()
+        self._seleccion = 0
+        self._opciones = ["nueva_partida", "cargar_partida"]
+        self._tiene_saves = self._verificar_saves()
 
     def _load_bg(self):
         bg_id = self.title_data.get("fondo", "")
@@ -23,6 +26,14 @@ class TituloScreen(BaseScreen):
                     self._bg = pygame.transform.scale(img, self.display_size)
                     return
         self._bg = None
+
+    def _verificar_saves(self):
+        try:
+            from repositories.repositorio_saves import RepositorioSaves
+            saves = RepositorioSaves()
+            return len(saves.listar_slots()) > 0
+        except Exception:
+            return False
 
     def draw(self, surface):
         dw, dh = self.display_size
@@ -40,18 +51,49 @@ class TituloScreen(BaseScreen):
             font_s = pygame.font.SysFont("Georgia", 22)
             ss = font_s.render(subtitulo, True, (180, 180, 190))
             surface.blit(ss, ((dw - ss.get_width()) // 2, dh // 2 + 10))
+
+        # Opciones de menú
+        font_menu = pygame.font.SysFont("Georgia", 22)
+        opciones_texto = {
+            "nueva_partida": "Nueva Partida",
+            "cargar_partida": "Cargar Partida",
+        }
+        y_start = dh // 2 + 60
+        for i, op_id in enumerate(self._opciones):
+            if op_id == "cargar_partida" and not self._tiene_saves:
+                continue
+            texto = opciones_texto.get(op_id, op_id)
+            es_sel = (i == self._seleccion)
+            color = (220, 200, 160) if es_sel else (120, 130, 140)
+            prefijo = "▶ " if es_sel else "  "
+            ts = font_menu.render(f"{prefijo}{texto}", True, color)
+            surface.blit(ts, ((dw - ts.get_width()) // 2, y_start))
+            y_start += 40
+
         hint = pygame.font.SysFont("Arial", 16).render(
-            "[ENTER] continuar   [R] resolucion", True, (120, 130, 140)
+            "[↑↓] seleccionar   [ENTER] aceptar", True, (100, 110, 120)
         )
-        surface.blit(hint, ((dw - hint.get_width()) // 2, dh - 60))
+        surface.blit(hint, ((dw - hint.get_width()) // 2, dh - 40))
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                self._seleccion = max(0, self._seleccion - 1)
+                return False
+            if event.key == pygame.K_DOWN:
+                self._seleccion = min(len(self._opciones) - 1, self._seleccion + 1)
+                return False
             if event.key == pygame.K_RETURN:
+                op = self._opciones[self._seleccion]
+                if op == "cargar_partida" and not self._tiene_saves:
+                    return False
                 return True
             if event.key in (pygame.K_r, pygame.K_o):
                 self._abrir_ajustes()
         return False
+
+    def get_seleccion(self):
+        return self._opciones[self._seleccion]
 
     def _abrir_ajustes(self):
         from .settings import SettingsScreen

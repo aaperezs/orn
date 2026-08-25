@@ -13,11 +13,14 @@ from systems.event_bus import BusEventos
 from systems.habilidades import SistemaHabilidades
 from systems.menu import MenuSystem
 from systems.particles import ParticleSystem
+from systems.shop_system import ShopSystem
+from systems.save_system import SaveSystem
 from systems.stack_manager import StackManager
 from systems.text_screen_player import TextScreenPlayer
+from runtime.contadores import ContadoresManager
 from runtime.flags import FlagsManager
 from runtime.monedas import MonedasManager
-from repositories import RepositorioMonedas
+from repositories import RepositorioMonedas, RepositorioContadores
 
 import pygame
 
@@ -49,7 +52,10 @@ class GameState:
         self.event_bus = BusEventos()
         self.stack_manager = StackManager(self)
         self.flags = FlagsManager()
+        self.contadores = ContadoresManager(RepositorioContadores().get_definiciones())
         self.monedas = MonedasManager(RepositorioMonedas().get_definiciones())
+        self.shop_system = ShopSystem()
+        self.save_system = SaveSystem(self)
         self.dialogo = DialogoSystem(flags=self.flags)
         self.ventana = TextScreenPlayer()
         self.camera = Camera(ANCHO, ALTO)
@@ -289,6 +295,10 @@ class GameState:
         self.tiempo_mensaje = 90
         self.cambiando_nivel = False
         self._jefe_derrotado = False
+
+        # Autosave al cambiar de nivel
+        if hasattr(self, "save_system"):
+            self.save_system.autosave("cambio_nivel")
 
         print(f"Cambio a nivel {nivel_id}")
         return True

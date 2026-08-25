@@ -638,7 +638,327 @@ class PanelObjetosClave(PanelApartado):
                 pygame.draw.line(pantalla, (40, 55, 35), (area.left + 20, sep_y), (area.left + area.width - 20, sep_y), 1)
 
 
+class PanelShopComprar(PanelApartado):
+    """Panel de compra en tienda: muestra items disponibles con precio y stock."""
+
+    def _items(self, estado):
+        if not hasattr(estado, "shop_actual") or not estado.shop_actual:
+            return []
+        return estado.shop_actual.get_items_disponibles(estado)
+
+    def item_count(self, estado):
+        return len(self._items(estado))
+
+    def accion_seleccionada(self, estado):
+        items = self._items(estado)
+        if 0 <= estado.menu.seleccion < len(items):
+            item = items[estado.menu.seleccion]
+            return {"tipo": "shop_comprar", "item_id": item.item_id, "cantidad": 1}
+        return None
+
+    def dibujar(self, pantalla, estado, area):
+        items = self._items(estado)
+        if not items:
+            txt = self.fuente.render("No hay items disponibles", True, (120, 120, 120))
+            txt_rect = txt.get_rect(center=(area.centerx, area.centery))
+            pantalla.blit(txt, txt_rect)
+            return
+
+        sel = estado.menu.seleccion
+        paso = 62
+        for i, shop_item in enumerate(items):
+            config = estado.inventario.get_config(shop_item.item_id) or {}
+            es_seleccion = (i == sel)
+            y_pos = area.top + i * paso
+
+            item_rect = pygame.Rect(area.left, y_pos, area.width, 54)
+            if es_seleccion:
+                panel_tallado(pantalla, item_rect, (40, 60, 30), (120, 150, 90))
+            else:
+                panel_tallado(pantalla, item_rect, (25, 42, 20), (60, 70, 50))
+
+            if es_seleccion:
+                pygame.draw.polygon(pantalla, (140, 200, 120), [
+                    (area.left + area.width + 6, y_pos + 27 - 6),
+                    (area.left + area.width + 6, y_pos + 27 + 6),
+                    (area.left + area.width, y_pos + 27)
+                ])
+
+            # Icono
+            sprite_id = config.get("sprite_id", "")
+            sprite = obtener_sprite(sprite_id) if sprite_id else None
+            if sprite:
+                icono_size = 32
+                escala = min(icono_size / sprite.get_width(), icono_size / sprite.get_height())
+                sw = max(1, int(sprite.get_width() * escala))
+                sh = max(1, int(sprite.get_height() * escala))
+                s = pygame.transform.scale(sprite, (sw, sh))
+                pantalla.blit(s, (area.left + 10, y_pos + (54 - sh) // 2))
+            else:
+                icono = config.get("icono", "●")
+                icono_txt = self.fuente.render(icono, True, (200, 190, 140))
+                pantalla.blit(icono_txt, (area.left + 10, y_pos + 4))
+
+            nombre = config.get("nombre", shop_item.item_id)
+            texto_nombre = self.fuente.render(nombre, True, (180, 200, 160))
+            pantalla.blit(texto_nombre, (area.left + 48, y_pos + 4))
+
+            # Precio
+            precio = shop_item.precio
+            moneda = shop_item.moneda_compra
+            costo = precio.get(moneda, 0)
+            moneda_cfg = estado.monedas.definir(moneda) if hasattr(estado, 'monedas') else None
+            icono_moneda = moneda_cfg.get("icono", "💰") if moneda_cfg else "💰"
+            precio_txt = f"{costo} {icono_moneda}"
+            if len(precio) > 1:
+                otros = [f"{v} {estado.monedas.definir(m).get('icono', m) if estado.monedas.definir(m) else m}" 
+                        for m, v in precio.items() if m != moneda]
+                if otros:
+                    precio_txt += f" / {' '.join(otros)}"
+            texto_precio = self.fuente_pequena.render(precio_txt, True, (200, 190, 100))
+            pantalla.blit(texto_precio, (area.left + area.width - 150, y_pos + 4))
+
+            # Stock
+            if shop_item.stock_infinito:
+                stock_txt = "∞"
+            else:
+                stock_txt = f"{shop_item.stock}/{shop_item.max_stock}"
+            stock_color = (180, 170, 120) if shop_item.stock > 0 else (180, 80, 80)
+            stock_render = self.fuente_pequena.render(f"Stock: {stock_txt}", True, stock_color)
+            pantalla.blit(stock_render, (area.left + area.width - 150, y_pos + 24))
+
+            # Descripción
+            texto_desc = self.fuente_pequena.render(config.get("descripcion", ""), True, (140, 150, 130))
+            pantalla.blit(texto_desc, (area.left + 48, y_pos + 28))
+
+            # Moneda del jugador
+            if hasattr(estado, 'monedas'):
+                tengo = estado.monedas.get(shop_item.moneda_compra, 0)
+                dinero_txt = self.fuente_pequena.render(f"Tienes: {tengo}", True, (140, 160, 140))
+                pantalla.blit(dinero_txt, (area.left + area.width - 150, y_pos + 40))
+
+            if i < len(items) - 1:
+                sep_y = y_pos + paso - 2
+                pygame.draw.line(pantalla, (40, 55, 35), (area.left + 20, sep_y), (area.left + area.width - 20, sep_y), 1)
+
+
+class PanelShopVender(PanelApartado):
+    """Panel de venta a tienda: muestra inventario del jugador con precio de compra."""
+
+    def _items(self, estado):
+        if not hasattr(estado, "shop_actual") or not estado.shop_actual:
+            return []
+        shop = estado.shop_actual
+        items = []
+        for iid in estado.inventario.items:
+            config = estado.inventario.get_config(iid) or {}
+            if not config:
+                continue
+            precio_compra = shop.get_precio_compra(iid)
+            if precio_compra:
+                items.append((iid, config, precio_compra))
+        return items
+
+    def item_count(self, estado):
+        return len(self._items(estado))
+
+    def accion_seleccionada(self, estado):
+        items = self._items(estado)
+        if 0 <= estado.menu.seleccion < len(items):
+            iid, config, precio = items[estado.menu.seleccion]
+            return {"tipo": "shop_vender", "item_id": iid, "cantidad": 1, "precio_compra": precio}
+        return None
+
+    def dibujar(self, pantalla, estado, area):
+        items = self._items(estado)
+        if not items:
+            txt = self.fuente.render("No hay items vendibles aquí", True, (120, 120, 120))
+            txt_rect = txt.get_rect(center=(area.centerx, area.centery))
+            pantalla.blit(txt, txt_rect)
+            return
+
+        sel = estado.menu.seleccion
+        paso = 62
+        for i, (iid, config, precio_compra) in enumerate(items):
+            es_seleccion = (i == sel)
+            y_pos = area.top + i * paso
+
+            item_rect = pygame.Rect(area.left, y_pos, area.width, 54)
+            if es_seleccion:
+                panel_tallado(pantalla, item_rect, (40, 60, 30), (120, 150, 90))
+            else:
+                panel_tallado(pantalla, item_rect, (25, 42, 20), (60, 70, 50))
+
+            if es_seleccion:
+                pygame.draw.polygon(pantalla, (140, 200, 120), [
+                    (area.left + area.width + 6, y_pos + 27 - 6),
+                    (area.left + area.width + 6, y_pos + 27 + 6),
+                    (area.left + area.width, y_pos + 27)
+                ])
+
+            # Icono
+            sprite_id = config.get("sprite_id", "")
+            sprite = obtener_sprite(sprite_id) if sprite_id else None
+            if sprite:
+                icono_size = 32
+                escala = min(icono_size / sprite.get_width(), icono_size / sprite.get_height())
+                sw = max(1, int(sprite.get_width() * escala))
+                sh = max(1, int(sprite.get_height() * escala))
+                s = pygame.transform.scale(sprite, (sw, sh))
+                pantalla.blit(s, (area.left + 10, y_pos + (54 - sh) // 2))
+            else:
+                icono = config.get("icono", "●")
+                icono_txt = self.fuente.render(icono, True, (200, 190, 140))
+                pantalla.blit(icono_txt, (area.left + 10, y_pos + 4))
+
+            nombre = config.get("nombre", iid)
+            texto_nombre = self.fuente.render(nombre, True, (180, 200, 160))
+            pantalla.blit(texto_nombre, (area.left + 48, y_pos + 4))
+
+            # Precio de compra (trueque)
+            precio_txt = " / ".join([f"{v} {estado.monedas.definir(m).get('icono', m) if estado.monedas.definir(m) else m}"
+                                    for m, v in precio_compra.items()])
+            texto_precio = self.fuente_pequena.render(f"Vende por: {precio_txt}", True, (100, 200, 100))
+            pantalla.blit(texto_precio, (area.left + area.width - 200, y_pos + 4))
+
+            cant = estado.inventario.cantidad(iid)
+            if cant > 1:
+                cant_txt = self.fuente_pequena.render(f"x{cant}", True, (140, 150, 130))
+                pantalla.blit(cant_txt, (area.left + area.width - 60, y_pos + 8))
+
+            texto_desc = self.fuente_pequena.render(config.get("descripcion", ""), True, (140, 150, 130))
+            pantalla.blit(texto_desc, (area.left + 48, y_pos + 28))
+
+            if i < len(items) - 1:
+                sep_y = y_pos + paso - 2
+                pygame.draw.line(pantalla, (40, 55, 35), (area.left + 20, sep_y), (area.left + area.width - 20, sep_y), 1)
+
+
 # Registro por tipo de renderer (data/menus.json -> apartados[].tipo)
+class PanelSaveSlots(PanelApartado):
+    """Panel de selección de slots de guardado."""
+
+    def __init__(self, fuente, fuente_pequena, config=None):
+        super().__init__(fuente, fuente_pequena, config)
+        self._modo = config.get("modo", "guardar")  # "guardar" | "cargar"
+        self._slots_cache = []
+
+    def item_count(self, estado):
+        if hasattr(estado, "save_system"):
+            self._slots_cache = estado.save_system.manager.listar_slots()
+        return len(self._slots_cache)
+
+    def accion_seleccionada(self, estado):
+        if self._modo == "cargar":
+            if 0 <= estado.menu.seleccion < len(self._slots_cache):
+                slot = self._slots_cache[estado.menu.seleccion]
+                return {"tipo": "load_game", "slot": slot.get("slot", 1)}
+        return None
+
+    def dibujar(self, pantalla, estado, area):
+        if not hasattr(estado, "save_system"):
+            return
+
+        slots = estado.save_system.manager.listar_slots()
+        if not slots:
+            txt = self.fuente.render("No hay partidas guardadas", True, (120, 120, 120))
+            txt_rect = txt.get_rect(center=(area.centerx, area.centery))
+            pantalla.blit(txt, txt_rect)
+            return
+
+        sel = estado.menu.seleccion
+        paso = 62
+        for i, slot in enumerate(slots):
+            es_seleccion = (i == sel)
+            y_pos = area.top + i * paso
+
+            item_rect = pygame.Rect(area.left, y_pos, area.width, 54)
+            if es_seleccion:
+                panel_tallado(pantalla, item_rect, (40, 60, 30), (120, 150, 90))
+            else:
+                panel_tallado(pantalla, item_rect, (25, 42, 20), (60, 70, 50))
+
+            if es_seleccion:
+                pygame.draw.polygon(pantalla, (140, 200, 120), [
+                    (area.left + area.width + 6, y_pos + 27 - 6),
+                    (area.left + area.width + 6, y_pos + 27 + 6),
+                    (area.left + area.width, y_pos + 27)
+                ])
+
+            slot_num = slot.get("slot", i + 1)
+            nivel = slot.get("nivel_id", "?")
+            timestamp = slot.get("timestamp", 0)
+            import time
+            fecha = time.strftime("%d/%m %H:%M", time.localtime(timestamp))
+            jefes = slot.get("jefes_derrotados", 0)
+
+            titulo = f"Slot {slot_num}  —  {nivel}"
+            texto_titulo = self.fuente.render(titulo, True, (180, 200, 160))
+            pantalla.blit(texto_titulo, (area.left + 10, y_pos + 4))
+
+            subtitulo = f"{fecha}  |  Jefes: {jefes}"
+            texto_sub = self.fuente_pequena.render(subtitulo, True, (140, 150, 130))
+            pantalla.blit(texto_sub, (area.left + 10, y_pos + 28))
+
+            if i < len(slots) - 1:
+                pygame.draw.line(pantalla, (60, 80, 50),
+                                 (area.left + 8, y_pos + paso - 2),
+                                 (area.left + area.width - 8, y_pos + paso - 2))
+
+
+class PanelConfirmarGuardar(PanelApartado):
+    """Panel de confirmación para guardar en un slot."""
+
+    def item_count(self, estado):
+        return 2  # Sí / No
+
+    def accion_seleccionada(self, estado):
+        if estado.menu.seleccion == 0:
+            return {"tipo": "confirmar_guardar"}
+        return {"tipo": "cancelar"}
+
+    def dibujar(self, pantalla, estado, area):
+        txt = self.fuente.render("¿Guardar partida?", True, (180, 200, 160))
+        pantalla.blit(txt, (area.left + 10, area.top + 20))
+
+        opciones = ["Sí, guardar", "Cancelar"]
+        sel = estado.menu.seleccion
+        for i, op in enumerate(opciones):
+            y = area.top + 60 + i * 40
+            color = (200, 220, 180) if i == sel else (120, 120, 120)
+            prefijo = "▶ " if i == sel else "  "
+            texto = self.fuente.render(f"{prefijo}{op}", True, color)
+            pantalla.blit(texto, (area.left + 20, y))
+
+
+class PanelConfirmarCargar(PanelApartado):
+    """Panel de confirmación para cargar un slot."""
+
+    def item_count(self, estado):
+        return 2  # Sí / No
+
+    def accion_seleccionada(self, estado):
+        if estado.menu.seleccion == 0:
+            return {"tipo": "confirmar_cargar"}
+        return {"tipo": "cancelar"}
+
+    def dibujar(self, pantalla, estado, area):
+        txt = self.fuente.render("¿Cargar partida?", True, (180, 200, 160))
+        pantalla.blit(txt, (area.left + 10, area.top + 20))
+
+        sub = self.fuente_pequena.render("Se perderá el progreso no guardado.", True, (180, 120, 100))
+        pantalla.blit(sub, (area.left + 10, area.top + 50))
+
+        opciones = ["Sí, cargar", "Cancelar"]
+        sel = estado.menu.seleccion
+        for i, op in enumerate(opciones):
+            y = area.top + 80 + i * 40
+            color = (200, 220, 180) if i == sel else (120, 120, 120)
+            prefijo = "▶ " if i == sel else "  "
+            texto = self.fuente.render(f"{prefijo}{op}", True, color)
+            pantalla.blit(texto, (area.left + 20, y))
+
+
 RENDERERS = {
     "lista_habilidades": PanelHabilidades,
     "lista_consumibles": PanelItems,
@@ -649,6 +969,11 @@ RENDERERS = {
     "stats_flags": PanelStatsFlags,
     "stats": PanelStats,
     "objetos_clave": PanelObjetosClave,
+    "shop_comprar": PanelShopComprar,
+    "shop_vender": PanelShopVender,
+    "save_slots": PanelSaveSlots,
+    "save_confirmar": PanelConfirmarGuardar,
+    "cargar_confirmar": PanelConfirmarCargar,
 }
 
 # Registro por id de apartado (retro-compat data/inventario.json)

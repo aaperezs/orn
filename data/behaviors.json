@@ -124,5 +124,15 @@
       "tile_rows": {"type": "int", "default": 1, "label": "Filas", "min": 1, "max": 2},
       "tile_cols": {"type": "int", "default": 1, "label": "Columnas", "min": 1, "max": 2}
     }
+  },
+  "save_point": {
+    "label": "Punto de Guardado",
+    "group": "interactuables",
+    "class_path": null,
+    "target_list": null,
+    "properties": {
+      "requiere_item": {"type": "string", "default": "cinta_guardado", "label": "Item requerido"},
+      "consume_item": {"type": "bool", "default": true, "label": "Consume item"}
+    }
   }
 }

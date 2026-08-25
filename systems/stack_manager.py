@@ -1050,6 +1050,98 @@ class StackManager:
                                 print(f"[EVENTO] run_script error: {e}")
                             break
 
+        elif accion == "open_shop":
+            shop_id = params.get("shop_id", "")
+            if shop_id and hasattr(estado, "shop_system"):
+                shop = estado.shop_system.get_shop(shop_id)
+                if shop:
+                    estado.shop_system.refrescar_unlocks(estado)
+                    estado.shop_actual = shop
+                    if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
+                        estado.menu.abrir_menu("shop")
+
+        elif accion == "open_save_menu":
+            if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
+                estado.mostrando_inventario = True
+                estado.menu.abrir_menu("save")
+
+        elif accion == "open_load_menu":
+            if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
+                estado.mostrando_inventario = True
+                estado.menu.abrir_menu("load")
+
+        elif accion == "close_shop":
+            if hasattr(estado, "shop_actual"):
+                estado.shop_actual = None
+            if hasattr(estado, "menu") and hasattr(estado.menu, "cerrar"):
+                estado.menu.cerrar()
+
+        elif accion == "close_save_menu":
+            if hasattr(estado, "menu") and hasattr(estado.menu, "cerrar"):
+                estado.menu.cerrar()
+            estado.mostrando_inventario = False
+
+        elif accion == "increment_contador":
+            contador_id = params.get("contador_id", "")
+            cantidad = int(params.get("cantidad", 1))
+            if contador_id and hasattr(estado, "contadores"):
+                estado.contadores.add(contador_id, cantidad)
+
+        elif accion == "set_contador":
+            contador_id = params.get("contador_id", "")
+            valor = int(params.get("valor", 0))
+            if contador_id and hasattr(estado, "contadores"):
+                estado.contadores.set(contador_id, valor)
+
+        elif accion == "restock_shop":
+            shop_id = params.get("shop_id", "")
+            item_id = params.get("item_id", "")
+            if shop_id and hasattr(estado, "shop_system"):
+                if item_id:
+                    estado.shop_system.restockear(estado, shop_id, item_id)
+                else:
+                    estado.shop_system.restockear(estado, shop_id)
+
+        elif accion == "add_shop_stock":
+            shop_id = params.get("shop_id", "")
+            item_id = params.get("item_id", "")
+            cantidad = int(params.get("cantidad", 1))
+            if shop_id and item_id and hasattr(estado, "shop_system"):
+                estado.shop_system.anadir_stock(shop_id, item_id, cantidad)
+
+        elif accion == "modify_shop_price":
+            shop_id = params.get("shop_id", "")
+            item_id = params.get("item_id", "")
+            moneda = params.get("moneda", "")
+            nuevo_precio = int(params.get("precio", 0))
+            if shop_id and item_id and moneda and hasattr(estado, "shop_system"):
+                estado.shop_system.modificar_precio(shop_id, item_id, moneda, nuevo_precio)
+
+        elif accion == "trigger_restock":
+            evento = params.get("evento", "")
+            if evento and hasattr(estado, "shop_system"):
+                estado.shop_system.procesar_triggers_restock(estado, evento)
+
+        elif accion == "save_game":
+            slot = int(params.get("slot", 1))
+            dev = params.get("dev", False)
+            if isinstance(dev, str):
+                dev = dev.lower() in ("true", "1", "si")
+            if hasattr(estado, "save_system"):
+                ok, msg = estado.save_system.guardar_slot(slot, dev=dev)
+                estado.mensaje_temporal = msg
+                estado.tiempo_mensaje = 90
+
+        elif accion == "load_game":
+            slot = int(params.get("slot", 1))
+            dev = params.get("dev", False)
+            if isinstance(dev, str):
+                dev = dev.lower() in ("true", "1", "si")
+            if hasattr(estado, "save_system"):
+                ok, msg = estado.save_system.cargar_slot(slot, dev=dev)
+                estado.mensaje_temporal = msg
+                estado.tiempo_mensaje = 90
+
     def _remover_entidades_en(self, estado, gx, gy):
         px = gx * TAMANO_CELDA
         py = gy * TAMANO_CELDA

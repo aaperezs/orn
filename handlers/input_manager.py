@@ -135,6 +135,19 @@ class InputManager:
             self._handle_trade(key)
             return
 
+        # Dev mode hotkeys (F5/F9)
+        if hasattr(estado, "save_system") and estado.save_system.is_dev_mode():
+            if key == pygame.K_F5:
+                ok, msg = estado.save_system.dev_save(1)
+                estado.mensaje_temporal = msg
+                estado.tiempo_mensaje = 90
+                return
+            elif key == pygame.K_F9:
+                ok, msg = estado.save_system.dev_load(1)
+                estado.mensaje_temporal = msg
+                estado.tiempo_mensaje = 90
+                return
+
         # World controls
         self._handle_world(key)
 
