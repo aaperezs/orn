@@ -168,6 +168,10 @@ class InputManager:
         menu = estado.menu
         if key == pygame.K_ESCAPE:
             estado.mostrando_inventario = False
+            if getattr(estado, "shop_actual", None) is not None:
+                estado.shop_actual = None
+                if hasattr(estado.menu, "cerrar"):
+                    estado.menu.cerrar()
         elif key == pygame.K_TAB:
             menu.cambiar_apartado(1)
         elif key == pygame.K_LEFT:

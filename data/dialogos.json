@@ -10,5 +10,33 @@
       "Amiga, eres una formidable guerrera",
       "te daré tal fuerza que ni una roca podrá hacerte frente"
     ]
+  },
+  "fenryr_store": {
+    "bienvenida": {
+      "dialog": [
+        "{fenryr} Mi nombre es Fenrir, aca nos presentamos oliendonos la cola."
+      ],
+      "options": [
+        {
+          "text": "¿que necesitas hoy?",
+          "choices": [
+            {
+              "text": "Hablar",
+              "action": "start_dialog",
+              "dialog": "fenryr_store/historia"
+            },
+            {
+              "text": "Tienda",
+              "action": "open_shop",
+              "shop": "fenrir_shop"
+            },
+            {
+              "text": "Salir",
+              "action": "close_dialog"
+            }
+          ]
+        }
+      ]
+    }
   }
 }

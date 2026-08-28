@@ -1,3 +1,29 @@
 {
-  "stacks": []
+  "stacks": [
+    {
+      "pos": [
+        18,
+        22
+      ],
+      "z": 1,
+      "eventos": [
+        {
+          "trigger": "interact",
+          "boss_id": "",
+          "watched_event_id": "",
+          "condiciones": [],
+          "acciones": [
+            {
+              "tipo": "start_dialogue",
+              "params": {
+                "dialogo_id": "fenryr_store/bienvenida"
+              }
+            }
+          ],
+          "once": true,
+          "id": ""
+        }
+      ]
+    }
+  ]
 }

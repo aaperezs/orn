@@ -371,5 +371,13 @@
     "properties": {
       "animation": "press_e"
     }
+  },
+  "nuevo_elemento_1": {
+    "sprite_id": "fenryr",
+    "name": "fenryr",
+    "behavior": "bloqueante",
+    "properties": {
+      "animation": "fenryr_store"
+    }
   }
 }

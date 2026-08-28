@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "ancho": 40,
+  "alto": 50,
+  "grid": {
+    "18,22": "nuevo_elemento_1"
+  }
+}

@@ -307,7 +307,8 @@ def dibujar():
         ui.dibujar(pantalla, estado.snake, estado.comida, estado.mensaje_temporal,
                    estado.monedas)
         if estado.mostrando_opciones:
-            choice_box.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada)
+            choice_box.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada,
+                               getattr(estado, "opcion_pregunta", ""))
         return
 
     pantalla.fill(FOREST_BG)
@@ -564,7 +565,8 @@ def _run_vn_mode(pantalla):
         if estado.mostrando_opciones:
             from systems.choice_box import ChoiceBox
             cb = ChoiceBox()
-            cb.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada)
+            cb.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada,
+                       getattr(estado, "opcion_pregunta", ""))
         _display_present()
         if not estado.corriendo:
             break

@@ -166,6 +166,10 @@ class StackManager:
         elif self._bloqueo_por == "dialogo_tree":
             if not estado.dialogo.activo and not estado.mostrando_opciones:
                 self._bloqueo_por = None
+        elif self._bloqueo_por == "shop":
+            if not getattr(estado, "shop_actual", None):
+                self._bloqueo_por = None
+                self._avanzar_arbol_dialogo(estado)
         elif self._bloqueo_por == "minijuego":
             if not estado.mostrando_minijuego:
                 self._bloqueo_por = None
@@ -244,6 +248,10 @@ class StackManager:
         """Dispara eventos con trigger 'on_event_finalized' que observan a eid."""
         if not eid:
             return
+        # Eventos globales que observan la finalización de este evento
+        eg = getattr(self.estado, "eventos_globales", None)
+        if eg is not None:
+            eg.on_event_finalized(eid)
         for key, stack in list(self._stacks.items()):
             gx, gy, z_layer = key
             eventos = stack.get("eventos", [])
@@ -271,6 +279,10 @@ class StackManager:
         """Busca y ejecuta eventos con trigger 'on_boss_defeated' cuyo boss_id coincida."""
         if self.bloqueado:
             return
+        # Eventos globales que reaccionan a la derrota de este boss
+        eg = getattr(self.estado, "eventos_globales", None)
+        if eg is not None:
+            eg.on_boss_defeated(boss_id)
         for key, stack in list(self._stacks.items()):
             gx, gy, z_layer = key
             eventos = stack.get("eventos", [])
@@ -548,6 +560,9 @@ class StackManager:
             params = node.get("params", {})
             self._ejecutar_accion(tipo_accion, params, 0, 0, 0)
             ad["nid_actual"] = node.get("next", "")
+            if tipo_accion == "open_shop":
+                self._bloqueo_por = "shop"
+                return
             self._avanzar_arbol_dialogo(estado)
 
         elif tipo == "salto":
@@ -601,6 +616,26 @@ class StackManager:
         params = accion_dict.get("params", {})
         self._ejecutar_accion(tipo, params, 0, 0, 0)
 
+    def _mostrar_opciones_plano(self, estado):
+        """Convierte options[0] de un diálogo plano a estado.opciones (acciones directas)."""
+        options = getattr(estado.dialogo, "options", []) if hasattr(estado, "dialogo") else []
+        if not options:
+            self._bloqueo_por = None
+            return
+        opt = options[0]
+        choices = opt.get("choices", [])
+        estado.opcion_pregunta = opt.get("text", "")
+        estado.opciones = []
+        for ch in choices:
+            params = {k: v for k, v in ch.items() if k not in ("text", "action")}
+            estado.opciones.append({
+                "texto": ch.get("text", ""),
+                "acciones": [{"tipo": ch.get("action", ""), "params": params}],
+            })
+        estado.opcion_seleccionada = -1
+        estado.mostrando_opciones = True
+        self._bloqueo_por = "choice"
+
     def _ejecutar_accion(self, accion, params, x, y, z=0):
         estado = self.estado
 
@@ -637,13 +672,36 @@ class StackManager:
             dialogo_id = params.get("dialogo_id", "")
             if "/" in dialogo_id and hasattr(estado, "dialogo"):
                 personaje, contexto = dialogo_id.split("/", 1)
-                estado.dialogo.iniciar(personaje, contexto)
+                estado.dialogo.iniciar(personaje, contexto,
+                                       al_terminar=lambda: self._mostrar_opciones_plano(estado))
+                self._bloqueo_por = "dialogo"
+                return True
+
+        elif accion == "start_dialog":
+            dialogo_id = params.get("dialog", "") or params.get("dialogo_id", "")
+            if "/" in dialogo_id and hasattr(estado, "dialogo"):
+                personaje, contexto = dialogo_id.split("/", 1)
+                estado.dialogo.iniciar(personaje, contexto,
+                                       al_terminar=lambda: self._mostrar_opciones_plano(estado))
+                self._bloqueo_por = "dialogo"
+                return True
+
+        elif accion == "close_dialog":
+            if hasattr(estado, "dialogo"):
+                estado.dialogo.activo = False
+                estado.dialogo.terminado = True
+                estado.dialogo.al_terminar = None
+            estado.mostrando_opciones = False
+            estado.opciones = []
+            self._bloqueo_por = None
+            return True
 
         elif accion == "iniciar_dialogo":
             dialogo_id = params.get("dialogo_id", "")
             if "/" in dialogo_id and hasattr(estado, "dialogo"):
                 personaje, contexto = dialogo_id.split("/", 1)
-                estado.dialogo.iniciar(personaje, contexto)
+                estado.dialogo.iniciar(personaje, contexto,
+                                       al_terminar=lambda: self._mostrar_opciones_plano(estado))
                 self._bloqueo_por = "dialogo"
                 return True
 
@@ -1051,14 +1109,14 @@ class StackManager:
                             break
 
         elif accion == "open_shop":
-            shop_id = params.get("shop_id", "")
+            shop_id = params.get("shop_id", "") or params.get("shop", "")
             if shop_id and hasattr(estado, "shop_system"):
                 shop = estado.shop_system.get_shop(shop_id)
                 if shop:
-                    estado.shop_system.refrescar_unlocks(estado)
                     estado.shop_actual = shop
                     if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
                         estado.menu.abrir_menu("shop")
+                    estado.mostrando_inventario = True
 
         elif accion == "open_save_menu":
             if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
@@ -1073,6 +1131,7 @@ class StackManager:
         elif accion == "close_shop":
             if hasattr(estado, "shop_actual"):
                 estado.shop_actual = None
+            estado.mostrando_inventario = False
             if hasattr(estado, "menu") and hasattr(estado.menu, "cerrar"):
                 estado.menu.cerrar()
 
@@ -1097,10 +1156,7 @@ class StackManager:
             shop_id = params.get("shop_id", "")
             item_id = params.get("item_id", "")
             if shop_id and hasattr(estado, "shop_system"):
-                if item_id:
-                    estado.shop_system.restockear(estado, shop_id, item_id)
-                else:
-                    estado.shop_system.restockear(estado, shop_id)
+                estado.shop_system.restockear(shop_id, item_id or None)
 
         elif accion == "add_shop_stock":
             shop_id = params.get("shop_id", "")
@@ -1118,9 +1174,8 @@ class StackManager:
                 estado.shop_system.modificar_precio(shop_id, item_id, moneda, nuevo_precio)
 
         elif accion == "trigger_restock":
-            evento = params.get("evento", "")
-            if evento and hasattr(estado, "shop_system"):
-                estado.shop_system.procesar_triggers_restock(estado, evento)
+            # Mecanismo v1 eliminado: el restock lo manejan los eventos globales.
+            pass
 
         elif accion == "save_game":
             slot = int(params.get("slot", 1))

@@ -18,6 +18,6 @@ class RepositorioTiendas(RepositorioBase):
 
     def get_shop(self, shop_id):
         for s in self.get_shops():
-            if s.get("id") == shop_id:
+            if s.get("shop_id") == shop_id:
                 return s
         return None

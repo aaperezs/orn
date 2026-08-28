@@ -93,6 +93,7 @@ class DialogoSystem:
         self.al_terminar = None
         self.boss_id = None
         self.tipo = None
+        self.options = []
         self.tiempo_espera = 0
         self.dialogos = self._cargar_dialogos()
         self.flags = flags or {}
@@ -112,8 +113,10 @@ class DialogoSystem:
                 al_terminar()
             return
         lineas_tipo = self.dialogos[boss_id].get(tipo, [])
+        options = []
         if isinstance(lineas_tipo, dict):
-            lineas_tipo = lineas_tipo.get("flat", [])
+            options = lineas_tipo.get("options", [])
+            lineas_tipo = lineas_tipo.get("dialog") or lineas_tipo.get("flat", [])
         if not lineas_tipo:
             print(f"No hay lineas de dialogo para {boss_id}/{tipo}")
             if al_terminar:
@@ -124,6 +127,7 @@ class DialogoSystem:
         self.boss_nombre = boss_nombre
         self.tipo = tipo
         self.lineas = lineas_tipo
+        self.options = options
         self.linea_actual = 0
         self.char_idx = 0
         self.activo = True
@@ -136,6 +140,7 @@ class DialogoSystem:
         self.boss_nombre = boss_nombre
         self.tipo = "inline"
         self.lineas = lineas
+        self.options = []
         self.linea_actual = 0
         self.char_idx = 0
         self.activo = True

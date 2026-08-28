@@ -18,6 +18,19 @@ def _cargar_slots_nombres():
         return {}
 
 
+def _moneda_pago(shop_item, shop=None):
+    """Moneda con la que se paga un item: principal de la tienda si está en
+    el precio, si no la primera moneda del precio."""
+    precio = shop_item.precio or {}
+    if shop is not None:
+        principal = getattr(shop, "moneda_principal", "")
+        if principal in precio:
+            return principal
+    if precio:
+        return next(iter(precio))
+    return "oro"
+
+
 class PanelApartado:
     """Base para un panel de apartado del menú."""
 
@@ -705,7 +718,7 @@ class PanelShopComprar(PanelApartado):
 
             # Precio
             precio = shop_item.precio
-            moneda = shop_item.moneda_compra
+            moneda = _moneda_pago(shop_item, estado.shop_actual)
             costo = precio.get(moneda, 0)
             moneda_cfg = estado.monedas.definir(moneda) if hasattr(estado, 'monedas') else None
             icono_moneda = moneda_cfg.get("icono", "💰") if moneda_cfg else "💰"
@@ -722,8 +735,8 @@ class PanelShopComprar(PanelApartado):
             if shop_item.stock_infinito:
                 stock_txt = "∞"
             else:
-                stock_txt = f"{shop_item.stock}/{shop_item.max_stock}"
-            stock_color = (180, 170, 120) if shop_item.stock > 0 else (180, 80, 80)
+                stock_txt = str(shop_item.stock)
+            stock_color = (180, 170, 120) if shop_item.stock_infinito or shop_item.stock > 0 else (180, 80, 80)
             stock_render = self.fuente_pequena.render(f"Stock: {stock_txt}", True, stock_color)
             pantalla.blit(stock_render, (area.left + area.width - 150, y_pos + 24))
 
@@ -733,7 +746,7 @@ class PanelShopComprar(PanelApartado):
 
             # Moneda del jugador
             if hasattr(estado, 'monedas'):
-                tengo = estado.monedas.get(shop_item.moneda_compra, 0)
+                tengo = estado.monedas.get(moneda, 0)
                 dinero_txt = self.fuente_pequena.render(f"Tienes: {tengo}", True, (140, 160, 140))
                 pantalla.blit(dinero_txt, (area.left + area.width - 150, y_pos + 40))
 

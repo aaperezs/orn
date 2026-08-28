@@ -1,0 +1,21 @@
+{
+  "eventos": [
+    {
+      "event_id": "restock_fenrir",
+      "trigger": "on_boss_defeated",
+      "boss_id": "fenrir",
+      "condiciones": [],
+      "acciones": [
+        {
+          "tipo": "add_shop_stock",
+          "params": {
+            "shop_id": "fenrir_shop",
+            "item_id": "key_willow",
+            "cantidad": 1
+          }
+        }
+      ],
+      "once": false
+    }
+  ]
+}

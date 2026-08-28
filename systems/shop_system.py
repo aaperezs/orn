@@ -1,11 +1,15 @@
 from repositories.repositorio_tiendas import RepositorioTiendas
 from repositories.repositorio_objetos import RepositorioObjetos
 from repositories.repositorio_monedas import RepositorioMonedas
-from entities.shop import Shop, ShopItem, evaluar_unlock
+from entities.shop import Shop, ShopItem
 
 
 class ShopSystem:
-    """Sistema central de tiendas: carga, unlock, stock, compra/venta, restock."""
+    """Sistema central de tiendas: carga, stock, compra/venta.
+
+    El restock de items lo manejan los eventos globales
+    (eventos_globales.json) vía acciones que apuntan por shop_id.
+    """
 
     def __init__(self):
         self._repo_tiendas = RepositorioTiendas()
@@ -18,7 +22,8 @@ class ShopSystem:
         self._shops = {}
         for shop_data in self._repo_tiendas.get_shops():
             shop = self._crear_shop_desde_data(shop_data)
-            self._shops[shop.id] = shop
+            if shop.shop_id:
+                self._shops[shop.shop_id] = shop
 
     def _crear_shop_desde_data(self, data: dict) -> Shop:
         items = {}
@@ -29,25 +34,17 @@ class ShopSystem:
             shop_item = ShopItem(
                 item_id=item_id,
                 precio=item_data.get("precio", {}),
-                moneda_compra=item_data.get("moneda_compra", "oro"),
                 stock=item_data.get("stock", 0),
-                max_stock=item_data.get("max_stock", 0),
                 stock_infinito=item_data.get("stock_infinito", False),
-                max_stack=item_data.get("max_stack", 1),
-                unlock=item_data.get("unlock"),
-                restock=item_data.get("restock"),
-                visible_si_bloqueado=item_data.get("visible_si_bloqueado", False),
             )
             items[item_id] = shop_item
 
         shop = Shop(
-            id=data.get("id", ""),
+            shop_id=data.get("shop_id", ""),
             nombre=data.get("nombre", ""),
             descripcion=data.get("descripcion", ""),
             moneda_principal=data.get("moneda_principal", "oro"),
-            categorias=data.get("categorias", []),
             items=items,
-            compra=data.get("compra", {}),
         )
         return shop
 
@@ -57,11 +54,15 @@ class ShopSystem:
     def get_todas_las_tiendas(self) -> list[Shop]:
         return list(self._shops.values())
 
-    def refrescar_unlocks(self, estado):
-        """Reevalúa unlocks de todos los items de todas las tiendas."""
-        for shop in self._shops.values():
-            for item in shop.items.values():
-                item.evaluar_unlock(estado)
+    def _moneda_pago(self, shop: Shop, item: ShopItem) -> str:
+        """Moneda con la que se paga un item: la principal de la tienda si está
+        en el precio, si no la primera moneda del precio."""
+        precio = item.precio or {}
+        if shop.moneda_principal in precio:
+            return shop.moneda_principal
+        if precio:
+            return next(iter(precio))
+        return shop.moneda_principal
 
     def puede_comprar(self, estado, shop_id: str, item_id: str, cantidad: int = 1) -> tuple[bool, str]:
         shop = self.get_shop(shop_id)
@@ -70,20 +71,13 @@ class ShopSystem:
         item = shop.get_item(item_id)
         if not item:
             return False, "Ítem no existe en la tienda"
-        if not item.desbloqueado and not item.visible_si_bloqueado:
-            return False, "Ítem no disponible"
         if not item.puede_comprar(cantidad):
             return False, "Sin stock"
-        # Verificar moneda
-        precio = item.precio
-        moneda = item.moneda_compra
+        moneda = self._moneda_pago(shop, item)
+        precio = item.precio or {}
         costo = precio.get(moneda, 0) * cantidad
         if estado.monedas.get(moneda, 0) < costo:
             return False, f"Faltan {moneda}"
-        # Verificar max_stack en inventario
-        actual = estado.inventario.cantidad(item_id)
-        if actual + cantidad > item.max_stack:
-            return False, f"Límite de pila ({item.max_stack})"
         return True, ""
 
     def comprar(self, estado, shop_id: str, item_id: str, cantidad: int = 1) -> tuple[bool, str]:
@@ -93,8 +87,8 @@ class ShopSystem:
 
         shop = self.get_shop(shop_id)
         item = shop.get_item(item_id)
-        precio = item.precio
-        moneda = item.moneda_compra
+        moneda = self._moneda_pago(shop, item)
+        precio = item.precio or {}
         costo = precio.get(moneda, 0) * cantidad
 
         estado.monedas.quitar(moneda, costo)
@@ -119,36 +113,29 @@ class ShopSystem:
         if not ok:
             return False, msg
 
-        estado.inventario.remover_item(item_id, cantidad)
+        total = 0
         for moneda, valor in precio_compra.items():
             total = valor * cantidad
             estado.monedas.dar(moneda, total)
 
-        return True, f"Vendido {item_id} x{cantidad} por {total} {moneda}"
+        estado.inventario.remover_item(item_id, cantidad)
 
-    def restockear(self, estado, shop_id: str, item_id: str | None = None):
+        return True, f"Vendido {item_id} x{cantidad} por {total}"
+
+    # ── Acciones de eventos globales ───────────────────────────
+
+    def restockear(self, shop_id: str, item_id: str | None = None):
+        """Restockea items: restaura el stock inicial configurado en shops.json."""
         shop = self.get_shop(shop_id)
         if not shop:
             return
         if item_id:
             item = shop.get_item(item_id)
-            if item and item.restock:
-                item.restockear(item.restock.get("cantidad"))
+            if item:
+                item.restockear()
         else:
             for item in shop.items.values():
-                if item.restock:
-                    item.restockear(item.restock.get("cantidad"))
-
-    def procesar_triggers_restock(self, estado, trigger_evento: str):
-        """Llamado cuando ocurre un evento que puede disparar restock (ej. derrota_jefe_2)."""
-        for shop in self._shops.values():
-            for item in shop.items.values():
-                if not item.restock:
-                    continue
-                triggers = item.restock.get("triggers", [])
-                for trigger in triggers:
-                    if trigger.get("tipo") == "evento" and trigger.get("evento") == trigger_evento:
-                        item.restockear(item.restock.get("cantidad"))
+                item.restockear()
 
     def anadir_stock(self, shop_id: str, item_id: str, cantidad: int):
         shop = self.get_shop(shop_id)
@@ -158,7 +145,7 @@ class ShopSystem:
         if item:
             if item.stock_infinito:
                 return
-            item.stock = min(item.max_stock, item.stock + cantidad)
+            item.stock += max(0, cantidad)
 
     def modificar_precio(self, shop_id: str, item_id: str, moneda: str, nuevo_precio: int):
         shop = self.get_shop(shop_id)
@@ -176,7 +163,6 @@ class ShopSystem:
             for item_id, item in shop.items.items():
                 estado[shop_id][item_id] = {
                     "stock": item.stock,
-                    "desbloqueado": item.desbloqueado,
                 }
         return estado
 
@@ -190,7 +176,6 @@ class ShopSystem:
                 item = shop.items.get(item_id)
                 if item:
                     item.stock = item_estado.get("stock", item.stock)
-                    item.desbloqueado = item_estado.get("desbloqueado", item.desbloqueado)
 
     def get_config_item(self, item_id: str) -> dict | None:
         """Obtiene config base del item desde repositorio objetos."""

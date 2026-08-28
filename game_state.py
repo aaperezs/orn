@@ -16,6 +16,7 @@ from systems.particles import ParticleSystem
 from systems.shop_system import ShopSystem
 from systems.save_system import SaveSystem
 from systems.stack_manager import StackManager
+from systems.eventos_globales_system import EventosGlobalesSystem
 from systems.text_screen_player import TextScreenPlayer
 from runtime.contadores import ContadoresManager
 from runtime.flags import FlagsManager
@@ -55,6 +56,7 @@ class GameState:
         self.contadores = ContadoresManager(RepositorioContadores().get_definiciones())
         self.monedas = MonedasManager(RepositorioMonedas().get_definiciones())
         self.shop_system = ShopSystem()
+        self.eventos_globales = EventosGlobalesSystem(self)
         self.save_system = SaveSystem(self)
         self.dialogo = DialogoSystem(flags=self.flags)
         self.ventana = TextScreenPlayer()
@@ -118,6 +120,7 @@ class GameState:
         self.personajes_visibles = {}
         self.mostrando_opciones = False
         self.opciones = []
+        self.opcion_pregunta = ""
         self.opcion_seleccionada = -1
 
         # ── Minigame state ──
