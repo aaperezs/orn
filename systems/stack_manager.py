@@ -112,6 +112,11 @@ class StackManager:
                         if accion.get("tipo") == "remove_escamas":
                             accion["tipo"] = "remove_moneda"
                             accion.setdefault("params", {}).setdefault("moneda", "escamas")
+                    # Homologar clave de shop: params["shop"] -> params["shop_id"]
+                    for accion in ev.get("acciones", []):
+                        p = accion.get("params", {})
+                        if "shop" in p and "shop_id" not in p:
+                            p["shop_id"] = p.pop("shop")
                 s["eventos"] = eventos
                 key = (pos[0], pos[1], z)
                 self._stacks[key] = s
@@ -628,6 +633,9 @@ class StackManager:
         estado.opciones = []
         for ch in choices:
             params = {k: v for k, v in ch.items() if k not in ("text", "action")}
+            # Homologar clave de shop legacy -> shop_id
+            if "shop" in params and "shop_id" not in params:
+                params["shop_id"] = params.pop("shop")
             estado.opciones.append({
                 "texto": ch.get("text", ""),
                 "acciones": [{"tipo": ch.get("action", ""), "params": params}],
