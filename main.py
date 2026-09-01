@@ -463,6 +463,11 @@ def dibujar():
         overlay.fill((0, 0, 0, 160))
         pantalla.blit(overlay, (0, 0))
 
+    # ── Opciones de diálogo (choice box) ──
+    if estado.mostrando_opciones:
+        choice_box.dibujar(pantalla, estado.opciones, estado.opcion_seleccionada,
+                           getattr(estado, "opcion_pregunta", ""))
+
 # ============================================
 # MODO NOVELA VISUAL (usa scene_player en lugar del loop de snake)
 # ============================================
