@@ -323,9 +323,21 @@ class StackManager:
             z = self.estado.snake.z
         self.process_events(x, y, "interact", z)
 
-    def _check_conditions(self, condiciones, extra=None):
-        extra = extra or {}
-        estado = self.estado
+    def _check_conditions(self, condiciones, extra=None, ctx=None):
+        """Evalúa condiciones de un evento.
+
+        Acepta un EventContext opcional. Si no se pasa, construye uno interno
+        con self.estado y el extra dict (compatibilidad con llamadas previas).
+        """
+        if ctx is None:
+            from systems.event_context import EventContext
+            ctx = EventContext(
+                state=self.estado,
+                source=getattr(self.estado, "snake", None),
+                custom=extra or {},
+            )
+        estado = ctx.state
+        extra = ctx.custom
         for cond in condiciones:
             ct = cond.get("tipo", "")
             params = cond.get("params", {})
@@ -348,17 +360,17 @@ class StackManager:
 
             elif ct == "item_count":
                 item = params.get("item", "")
-                if not hasattr(estado, "inventario"):
+                if ctx.inventario is None:
                     return False
-                actual = estado.inventario.cantidad(item)
+                actual = ctx.inventario.cantidad(item)
                 if not self._eval(actual, op, int(valor)):
                     return False
 
             elif ct == "flag":
                 flag = params.get("flag", "")
-                if not hasattr(estado, "flags"):
+                if ctx.flags is None:
                     return False
-                actual = estado.flags.get(flag)
+                actual = ctx.flags.get(flag)
                 if op in ("es_verdadero", "es_falso"):
                     valido = bool(actual)
                     if op == "es_verdadero" and not valido:
@@ -389,9 +401,9 @@ class StackManager:
 
             elif ct == "ability":
                 ability = params.get("ability", "")
-                if not hasattr(estado, "habilidades"):
+                if ctx.habilidades is None:
                     return False
-                actual = estado.habilidades.tiene_habilidad(ability)
+                actual = ctx.habilidades.tiene_habilidad(ability)
                 if op == "tiene" and not actual:
                     return False
                 if op == "no_tiene" and actual:
@@ -399,19 +411,19 @@ class StackManager:
 
             elif ct == "ability_equipped":
                 ability = params.get("ability", "")
-                if not hasattr(estado, "habilidades"):
+                if ctx.habilidades is None:
                     return False
-                tiene = estado.habilidades.tiene_habilidad(ability)
-                equipada = estado.habilidades.habilidad_equipada == ability
+                tiene = ctx.habilidades.tiene_habilidad(ability)
+                equipada = ctx.habilidades.habilidad_equipada == ability
                 if op == "equipado" and not (tiene and equipada):
                     return False
                 if op == "no_equipado" and (tiene and equipada):
                     return False
 
             elif ct == "pp":
-                if not hasattr(estado, "habilidades"):
+                if ctx.habilidades is None:
                     return False
-                actual = estado.habilidades.get_pp_actual()
+                actual = ctx.habilidades.get_pp_actual()
                 if not self._eval(actual, op, int(valor)):
                     return False
 
