@@ -10,6 +10,9 @@ from configs.game import VELOCIDAD_BASE
 from project_paths import levels_dir
 from repositories.repositorio_objetos import RepositorioObjetos
 
+# Registra las acciones migradas al ActionRegistry (registry-first en _ejecutar_accion).
+from systems import actions  # noqa: F401
+
 STACKS_DIR = levels_dir("mapas_stacks")
 
 
@@ -658,6 +661,22 @@ class StackManager:
 
     def _ejecutar_accion(self, accion, params, x, y, z=0):
         estado = self.estado
+
+        # Registry-first: si la acción está migrada, ejecuta con EventContext.
+        # Fallback legacy: si no está registrada o lanza excepción, cae al elif.
+        from systems.action_registry import get_action
+        cls = get_action(accion)
+        if cls is not None:
+            from systems.event_context import EventContext
+            ctx = EventContext(
+                state=estado,
+                source=getattr(estado, "snake", None),
+                position=(x, y, z),
+            )
+            try:
+                return bool(cls().execute(ctx, params))
+            except Exception as e:
+                print(f"[EVENTO] acción registrada '{accion}' falló: {e}. Usando fallback legacy.")
 
         if accion == "show_message":
             mensaje = params.get("mensaje", "")
