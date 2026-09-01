@@ -34,6 +34,16 @@ def find_first_scene(data):
 
 
 def evaluate_condition(condition, flags_manager):
+    """Evalúa una condición de escena (hoja, lista o compuesto AND/OR)."""
+    if not condition:
+        return True
+    from systems.conditions import evaluate_condition_node
+    return evaluate_condition_node(
+        condition, lambda leaf: _eval_leaf(leaf, flags_manager)
+    )
+
+
+def _eval_leaf(condition, flags_manager):
     if not condition or not isinstance(condition, dict):
         return True
     flag_key = condition.get("flag", "")

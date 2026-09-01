@@ -63,52 +63,55 @@ class EventosGlobalesSystem:
     # ── Condiciones ────────────────────────────────────────────
 
     def _check_conditions(self, condiciones) -> bool:
+        from systems.conditions import evaluate_condition_node
+        return evaluate_condition_node(
+            condiciones, lambda cond: self._check_condition_hoja(cond)
+        )
+
+    def _check_condition_hoja(self, cond) -> bool:
+        """Evalúa UNA condición global simple. Devuelve bool."""
         estado = self.estado
-        for cond in condiciones:
-            ct = cond.get("tipo", "")
-            params = cond.get("params", {})
-            op = params.get("operador", ">=")
-            valor = params.get("valor", 1)
+        ct = cond.get("tipo", "")
+        params = cond.get("params", {})
+        op = params.get("operador", ">=")
+        valor = params.get("valor", 1)
 
-            if ct == "flag":
-                flag = params.get("flag", "")
-                actual = estado.flags.get(flag, 0)
-                if op in ("es_verdadero", "es_falso"):
-                    valido = bool(actual)
-                    if op == "es_verdadero" and not valido:
-                        return False
-                    if op == "es_falso" and valido:
-                        return False
-                else:
-                    if not self._eval(actual, op, int(valor)):
-                        return False
+        if ct == "flag":
+            flag = params.get("flag", "")
+            actual = estado.flags.get(flag, 0)
+            if op in ("es_verdadero", "es_falso"):
+                valido = bool(actual)
+                if op == "es_verdadero" and not valido:
+                    return False
+                if op == "es_falso" and valido:
+                    return False
+                return True
+            return self._eval(actual, op, int(valor))
 
-            elif ct == "has_moneda":
-                moneda = params.get("moneda", "")
-                actual = estado.monedas.get(moneda, 0)
-                if not self._eval(actual, op, int(valor)):
-                    return False
+        elif ct == "has_moneda":
+            moneda = params.get("moneda", "")
+            actual = estado.monedas.get(moneda, 0)
+            return self._eval(actual, op, int(valor))
 
-            elif ct == "item_count":
-                item = params.get("item", "")
-                actual = estado.inventario.cantidad(item)
-                if not self._eval(actual, op, int(valor)):
-                    return False
+        elif ct == "item_count":
+            item = params.get("item", "")
+            actual = estado.inventario.cantidad(item)
+            return self._eval(actual, op, int(valor))
 
-            elif ct == "ability":
-                ability = params.get("ability", "")
-                tiene = estado.habilidades.tiene_habilidad(ability)
-                if op == "tiene" and not tiene:
-                    return False
-                if op == "no_tiene" and tiene:
-                    return False
+        elif ct == "ability":
+            ability = params.get("ability", "")
+            tiene = estado.habilidades.tiene_habilidad(ability)
+            if op == "tiene" and not tiene:
+                return False
+            if op == "no_tiene" and tiene:
+                return False
+            return True
 
-            elif ct == "evaluar_evento":
-                evento_id = params.get("evento_id", "")
-                estado_esperado = params.get("estado", "finalizado")
-                actual = estado.stack_manager._event_states.get(evento_id, "pendiente")
-                if actual != estado_esperado:
-                    return False
+        elif ct == "evaluar_evento":
+            evento_id = params.get("evento_id", "")
+            estado_esperado = params.get("estado", "finalizado")
+            actual = estado.stack_manager._event_states.get(evento_id, "pendiente")
+            return actual == estado_esperado
 
         return True
 

@@ -331,6 +331,7 @@ class StackManager:
 
         Acepta un EventContext opcional. Si no se pasa, construye uno interno
         con self.estado y el extra dict (compatibilidad con llamadas previas).
+        Soporta lista plana (AND implícito) y nodos compuestos operator/children.
         """
         if ctx is None:
             from systems.event_context import EventContext
@@ -339,116 +340,118 @@ class StackManager:
                 source=getattr(self.estado, "snake", None),
                 custom=extra or {},
             )
+        from systems.conditions import evaluate_condition_node
+        return evaluate_condition_node(
+            condiciones, lambda cond: self._check_condition_hoja(cond, ctx)
+        )
+
+    def _check_condition_hoja(self, cond, ctx) -> bool:
+        """Evalúa UNA condición simple (hoja). Devuelve bool."""
         estado = ctx.state
         extra = ctx.custom
-        for cond in condiciones:
-            ct = cond.get("tipo", "")
-            params = cond.get("params", {})
-            op = params.get("operador", ">=")
-            valor = params.get("valor", 1)
+        ct = cond.get("tipo", "")
+        params = cond.get("params", {})
+        op = params.get("operador", ">=")
+        valor = params.get("valor", 1)
 
-            if ct == "escamas":
-                if not hasattr(estado, "snake"):
-                    return False
-                actual = estado.snake.get_escamas()
-                if not self._eval(actual, op, int(valor)):
-                    return False
+        if ct == "escamas":
+            if not hasattr(estado, "snake"):
+                return False
+            actual = estado.snake.get_escamas()
+            return self._eval(actual, op, int(valor))
 
-            elif ct == "has_moneda":
-                actual = self._moneda_valor(params.get("moneda", ""))
+        elif ct == "has_moneda":
+            actual = self._moneda_valor(params.get("moneda", ""))
+            if actual is None:
+                return False
+            return self._eval(actual, op, int(valor))
+
+        elif ct == "item_count":
+            item = params.get("item", "")
+            if ctx.inventario is None:
+                return False
+            actual = ctx.inventario.cantidad(item)
+            return self._eval(actual, op, int(valor))
+
+        elif ct == "flag":
+            flag = params.get("flag", "")
+            if ctx.flags is None:
+                return False
+            actual = ctx.flags.get(flag)
+            if op in ("es_verdadero", "es_falso"):
+                valido = bool(actual)
+                if op == "es_verdadero" and not valido:
+                    return False
+                if op == "es_falso" and valido:
+                    return False
+                return True
+            else:
                 if actual is None:
                     return False
-                if not self._eval(actual, op, int(valor)):
-                    return False
-
-            elif ct == "item_count":
-                item = params.get("item", "")
-                if ctx.inventario is None:
-                    return False
-                actual = ctx.inventario.cantidad(item)
-                if not self._eval(actual, op, int(valor)):
-                    return False
-
-            elif ct == "flag":
-                flag = params.get("flag", "")
-                if ctx.flags is None:
-                    return False
-                actual = ctx.flags.get(flag)
-                if op in ("es_verdadero", "es_falso"):
-                    valido = bool(actual)
-                    if op == "es_verdadero" and not valido:
+                esperado = params.get("valor", 1)
+                if isinstance(actual, str) or isinstance(esperado, str):
+                    if op not in ("==", "!="):
                         return False
-                    if op == "es_falso" and valido:
-                        return False
+                    return (op == "==") == (str(actual) == str(esperado))
                 else:
-                    if actual is None:
-                        return False
-                    esperado = params.get("valor", 1)
-                    if isinstance(actual, str) or isinstance(esperado, str):
-                        if op not in ("==", "!="):
-                            return False
-                        if (op == "==") != (str(actual) == str(esperado)):
-                            return False
-                    else:
-                        if not isinstance(actual, (int, float)):
-                            try:
-                                actual = int(actual)
-                            except (ValueError, TypeError):
-                                return False
+                    if not isinstance(actual, (int, float)):
                         try:
-                            esperado = int(esperado)
+                            actual = int(actual)
                         except (ValueError, TypeError):
-                            esperado = 1
-                        if not self._eval(actual, op, esperado):
                             return False
+                    try:
+                        esperado = int(esperado)
+                    except (ValueError, TypeError):
+                        esperado = 1
+                    return self._eval(actual, op, esperado)
 
-            elif ct == "ability":
-                ability = params.get("ability", "")
-                if ctx.habilidades is None:
-                    return False
-                actual = ctx.habilidades.tiene_habilidad(ability)
-                if op == "tiene" and not actual:
-                    return False
-                if op == "no_tiene" and actual:
-                    return False
+        elif ct == "ability":
+            ability = params.get("ability", "")
+            if ctx.habilidades is None:
+                return False
+            actual = ctx.habilidades.tiene_habilidad(ability)
+            if op == "tiene" and not actual:
+                return False
+            if op == "no_tiene" and actual:
+                return False
+            return True
 
-            elif ct == "ability_equipped":
-                ability = params.get("ability", "")
-                if ctx.habilidades is None:
-                    return False
-                tiene = ctx.habilidades.tiene_habilidad(ability)
-                equipada = ctx.habilidades.habilidad_equipada == ability
-                if op == "equipado" and not (tiene and equipada):
-                    return False
-                if op == "no_equipado" and (tiene and equipada):
-                    return False
+        elif ct == "ability_equipped":
+            ability = params.get("ability", "")
+            if ctx.habilidades is None:
+                return False
+            tiene = ctx.habilidades.tiene_habilidad(ability)
+            equipada = ctx.habilidades.habilidad_equipada == ability
+            if op == "equipado" and not (tiene and equipada):
+                return False
+            if op == "no_equipado" and (tiene and equipada):
+                return False
+            return True
 
-            elif ct == "pp":
-                if ctx.habilidades is None:
-                    return False
-                actual = ctx.habilidades.get_pp_actual()
-                if not self._eval(actual, op, int(valor)):
-                    return False
+        elif ct == "pp":
+            if ctx.habilidades is None:
+                return False
+            actual = ctx.habilidades.get_pp_actual()
+            return self._eval(actual, op, int(valor))
 
-            elif ct == "evaluar_evento":
-                evento_id = params.get("evento_id", "")
-                estado_esperado = params.get("estado", "finalizado")
-                actual = self._event_states.get(evento_id, "pendiente")
-                if actual != estado_esperado:
-                    return False
+        elif ct == "evaluar_evento":
+            evento_id = params.get("evento_id", "")
+            estado_esperado = params.get("estado", "finalizado")
+            actual = self._event_states.get(evento_id, "pendiente")
+            return actual == estado_esperado
 
-            elif ct == "damage":
-                actual = extra.get("damage", 0)
-                if not self._eval(actual, op, int(valor)):
-                    return False
+        elif ct == "damage":
+            actual = extra.get("damage", 0)
+            return self._eval(actual, op, int(valor))
 
-            elif ct == "attack_type":
-                esperado = params.get("valor", "")
-                actual = extra.get("attack_type", "")
-                if op == "==" and actual != esperado:
-                    return False
-                if op == "!=" and actual == esperado:
-                    return False
+        elif ct == "attack_type":
+            esperado = params.get("valor", "")
+            actual = extra.get("attack_type", "")
+            if op == "==" and actual != esperado:
+                return False
+            if op == "!=" and actual == esperado:
+                return False
+            return True
 
         return True
 
