@@ -28,7 +28,7 @@
             {
               "text": "Tienda",
               "action": "open_shop",
-              "shop": "fenrir_shop"
+              "shop_id": "fenrir_shop"
             },
             {
               "text": "Salir",

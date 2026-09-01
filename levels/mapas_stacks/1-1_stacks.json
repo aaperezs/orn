@@ -456,7 +456,7 @@
             {
               "tipo": "change_map",
               "params": {
-                "nivel": "1-4",
+                "nivel": "crisol",
                 "exit_id": "exit1_3-1_1-4"
               }
             }

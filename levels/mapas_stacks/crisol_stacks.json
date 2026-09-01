@@ -20,7 +20,7 @@
               }
             }
           ],
-          "once": true,
+          "once": false,
           "id": ""
         }
       ]
