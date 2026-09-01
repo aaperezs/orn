@@ -1,5 +1,7 @@
 # entities/objeto_colision.py
+import pygame
 from configs import *
+from utils.sprite_manager import obtener as obtener_sprite
 
 
 class ObjetoColision:
@@ -37,12 +39,39 @@ class ObjetoColision:
 
 
 class ObjetoBloqueante(ObjetoColision):
-    """Objeto que BLOQUEA el paso de la serpiente (ej: rocas)"""
+    """Objeto que BLOQUEA el paso de la serpiente (ej: rocas, NPCs, árboles)"""
 
     def __init__(self, x, y, ancho=TAMANO_CELDA, alto=TAMANO_CELDA):
         super().__init__(x, y, ancho, alto)
         self.tipo = ""
         self.rotura = 0
+        self.animation = ""
+        self.sprite_id = ""
+
+    def dibujar(self, pantalla, offset_x=0, offset_y=0):
+        if not self.animation:
+            return
+        from systems.animation import get_anim_sprite, get_anim_glow
+        ox = self.x + offset_x
+        oy = self.y + offset_y
+        sprite_id = get_anim_sprite(self.animation) or self.sprite_id
+        if not sprite_id:
+            return
+        sprite = obtener_sprite(sprite_id)
+        if not sprite:
+            return
+        glow = get_anim_glow(self.animation)
+        if glow:
+            color = tuple(glow.get("color", [255, 255, 0]))
+            radius = glow.get("radius", 8)
+            alpha = glow.get("alpha", 80)
+            gcx = ox + TAMANO_CELDA // 2
+            gcy = oy + TAMANO_CELDA // 2
+            for r in range(radius, 1, -2):
+                surf = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+                pygame.draw.circle(surf, (*color, alpha), (r + 2, r + 2), r)
+                pantalla.blit(surf, (gcx - r - 2, gcy - r - 2))
+        pantalla.blit(sprite, (ox, oy))
 
     def colisiona_con(self, cabeza_x, cabeza_y, z_jugador=0):
         if not self.activo or not self.visible:
