@@ -372,7 +372,7 @@
       "animation": "press_e"
     }
   },
-  "nuevo_elemento_1": {
+  "fenryr_store": {
     "sprite_id": "fenryr",
     "name": "fenryr",
     "behavior": "bloqueante",

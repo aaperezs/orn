@@ -42,14 +42,6 @@
       "enabled": false
     }
   },
-  "anim_c31a8a": {
-    "frames": [],
-    "interval": 500
-  },
-  "anim_7f0539": {
-    "frames": [],
-    "interval": 500
-  },
   "comida_mana": {
     "frames": [
       "comida_mana"
@@ -65,10 +57,6 @@
       "radius": 25,
       "alpha": 20
     }
-  },
-  "anim_49421f": {
-    "frames": [],
-    "interval": 500
   },
   "press_q": {
     "frames": [
@@ -90,20 +78,12 @@
       "enabled": false
     }
   },
-  "anim_ea77fc": {
-    "frames": [],
-    "interval": 500
-  },
   "close_eye": {
     "frames": [],
     "interval": 500,
     "glow": {
       "enabled": false
     }
-  },
-  "anim_98cc55": {
-    "frames": [],
-    "interval": 500
   },
   "fenryr_store": {
     "frames": [
