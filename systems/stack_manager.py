@@ -621,6 +621,14 @@ class StackManager:
                 self._arbol_dialogo = None
                 self._bloqueo_por = None
 
+    def avanzar_arbol_dialogo(self, estado):
+        """Alias público para _avanzar_arbol_dialogo (usado por acciones migradas)."""
+        self._avanzar_arbol_dialogo(estado)
+
+    def mostrar_opciones_plano(self, estado):
+        """Alias público para _mostrar_opciones_plano (usado por acciones migradas)."""
+        self._mostrar_opciones_plano(estado)
+
     def _ejecutar_acciones(self, acciones, x, y, z=0):
         for i, act in enumerate(acciones):
             print(f"[EVENTO] accion {i+1}: {act.get('tipo')} params={act.get('params', {})}")
@@ -701,48 +709,6 @@ class StackManager:
             sx = x + ox * TAMANO_CELDA
             sy = y + oy * TAMANO_CELDA
             self._spawn_from_sprite(sprite_id, sx, sy)
-
-        elif accion in ("start_dialogue", "start_dialog", "iniciar_dialogo"):
-            dialogo_id = (params.get("dialog", "") or
-                          params.get("dialogo_id", ""))
-            if "/" in dialogo_id and hasattr(estado, "dialogo"):
-                personaje, contexto = dialogo_id.split("/", 1)
-                estado.dialogo.iniciar(personaje, contexto,
-                                       al_terminar=lambda: self._mostrar_opciones_plano(estado))
-                self._bloqueo_por = "dialogo"
-                return True
-
-        elif accion == "close_dialog":
-            if hasattr(estado, "dialogo"):
-                estado.dialogo.activo = False
-                estado.dialogo.terminado = True
-                estado.dialogo.al_terminar = None
-            estado.mostrando_opciones = False
-            estado.opciones = []
-            self._bloqueo_por = None
-            return True
-
-        elif accion == "dialogo_inline":
-            lineas = params.get("lineas", [])
-            quien = params.get("quien", "")
-            if lineas and hasattr(estado, "dialogo"):
-                estado.dialogo.iniciar_inline(lineas, boss_nombre=quien)
-                self._bloqueo_por = "dialogo"
-                return True
-
-        elif accion == "dialogo_tree":
-            dialogo_id = params.get("dialogo_id", "")
-            if "/" in dialogo_id and hasattr(estado, "dialogo"):
-                personaje, contexto = dialogo_id.split("/", 1)
-                self._arbol_dialogo = {
-                    "personaje": personaje,
-                    "contexto": contexto,
-                    "nid_actual": None,
-                    "_iniciado": False,
-                }
-                self._avanzar_arbol_dialogo(estado)
-                self._bloqueo_por = "dialogo_tree"
-                return True
 
         elif accion == "start_boss_fight":
             if hasattr(estado, 'arena_boss') and estado.arena_boss:

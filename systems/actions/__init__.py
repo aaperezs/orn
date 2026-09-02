@@ -25,3 +25,5 @@ from systems.actions.remove_moneda import *  # noqa: F401,F403
 from systems.actions.abrir_menu import *  # noqa: F401,F403
 from systems.actions.examinar_key_item import *  # noqa: F401,F403
 from systems.actions.mostrar_ventana import *  # noqa: F401,F403
+# Fase 2 Wave 3: acciones de diálogo
+from systems.actions.dialog import *  # noqa: F401,F403
