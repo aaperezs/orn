@@ -27,3 +27,20 @@ from systems.actions.examinar_key_item import *  # noqa: F401,F403
 from systems.actions.mostrar_ventana import *  # noqa: F401,F403
 # Fase 2 Wave 3: acciones de diálogo
 from systems.actions.dialog import *  # noqa: F401,F403
+# Fase 2 Wave 4: acciones pesadas
+from systems.actions.change_map import *  # noqa: F401,F403
+from systems.actions.consume_pp import *  # noqa: F401,F403
+from systems.actions.desbloquear_habilidad import *  # noqa: F401,F403
+from systems.actions.equipar_habilidad import *  # noqa: F401,F403
+from systems.actions.save_game import *  # noqa: F401,F403
+from systems.actions.load_game import *  # noqa: F401,F403
+from systems.actions.open_shop import *  # noqa: F401,F403
+from systems.actions.run_script import *  # noqa: F401,F403
+from systems.actions.ir_a_escena import *  # noqa: F401,F403
+from systems.actions.iniciar_minijuego import *  # noqa: F401,F403
+from systems.actions.mostrar_opciones import *  # noqa: F401,F403
+from systems.actions.iniciar_demo import *  # noqa: F401,F403
+from systems.actions.mover_a import *  # noqa: F401,F403
+from systems.actions.spawn_entity import *  # noqa: F401,F403
+from systems.actions.start_boss_fight import *  # noqa: F401,F403
+from systems.actions.damage import *  # noqa: F401,F403
