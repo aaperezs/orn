@@ -32,41 +32,15 @@ RUNTIME_INTERNAL = {
     "comando_automatico",
     "esperar",
     "bloquear_eventos",
+    "auto_caminar",
     "trigger_restock",
 }
 
-# Acciones complejas pendientes de migrar a la Fase 2.
-# Se ignoran en la comparación porque aún están en el elif legacy.
-COMPLEJAS_PENDIENTES = {
-    "spawn_entity",
-    "start_dialogue",
-    "start_dialog",
-    "iniciar_dialogo",
-    "dialogo_inline",
-    "dialogo_tree",
-    "start_boss_fight",
-    "change_map",
-    "abrir_menu",
-    "examinar_key_item",
-    "consume_pp",
-    "mover_a",
-    "remove_sprite",
-    "give_moneda",
-    "remove_moneda",
-    "damage",
-    "desbloquear_habilidad",
-    "equipar_habilidad",
-    "mostrar_ventana",
-    "iniciar_minijuego",
-    "ir_a_escena",
-    "mostrar_opciones",
-    "iniciar_demo",
-    "run_script",
-    "open_shop",
-    "save_game",
-    "load_game",
-    "close_dialog",
-    "auto_caminar",
+# Alias legacy que el runtime soporta pero el editor NO debe mostrar
+# (son redundantes con la acción canónica).
+RUNTIME_ALIASES = {
+    "start_dialog",      # alias de start_dialogue
+    "iniciar_dialogo",   # alias de start_dialogue
 }
 
 
@@ -111,21 +85,22 @@ def get_registry_actions() -> list[str]:
     """Extrae IDs de @register_action del action_registry."""
     with open(ACTION_REGISTRY, encoding="utf-8") as f:
         src = f.read()
-    # Also check action files in orm/systems/actions/
+    # Also check action files in orm/systems/actions/ and subdirectories
     actions_dir = os.path.join(REPO_ROOT, "orm", "systems", "actions")
     all_src = src
     if os.path.isdir(actions_dir):
-        for fname in os.listdir(actions_dir):
-            if fname.endswith(".py") and fname != "__init__.py":
-                fpath = os.path.join(actions_dir, fname)
-                with open(fpath, encoding="utf-8") as f:
-                    all_src += "\n" + f.read()
+        for root, dirs, files in os.walk(actions_dir):
+            for fname in files:
+                if fname.endswith(".py") and fname != "__init__.py":
+                    fpath = os.path.join(root, fname)
+                    with open(fpath, encoding="utf-8") as f:
+                        all_src += "\n" + f.read()
     pattern = re.compile(r'@register_action\("([^"]+)"\)')
     return sorted(set(pattern.findall(all_src)))
 
 
 def get_runtime_actions() -> list[str]:
-    """Combina acciones del registry + elif chain, excluyendo internas y pendientes."""
+    """Combina acciones del registry + elif chain, excluyendo internas y aliases."""
     registry = set(get_registry_actions())
     elif_actions = set(_extract_runtime_strings(STACK_MANAGER, "accion"))
     # Also extract from "elif accion in (...)" blocks
@@ -136,9 +111,9 @@ def get_runtime_actions() -> list[str]:
         elif_actions.update(ids)
 
     all_runtime = registry | elif_actions
-    # Remove internals and pending complex actions
+    # Remove internals, aliases, and pending complex actions
     all_runtime -= RUNTIME_INTERNAL
-    all_runtime -= COMPLEJAS_PENDIENTES
+    all_runtime -= RUNTIME_ALIASES
     return sorted(all_runtime)
 
 
