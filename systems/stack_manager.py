@@ -871,33 +871,6 @@ class StackManager:
                 if nivel_origen:
                     estado.nivel_origen = nivel_origen
 
-        elif accion == "comando_automatico":
-            comando = params.get("comando", "")
-            if comando in ("DERECHA", "IZQUIERDA", "ARRIBA", "ABAJO"):
-                if hasattr(estado, "snake"):
-                    estado.snake.cambiar_direccion(comando)
-            elif comando == "ATAQUE":
-                if hasattr(estado, "ejecutar_golpe_q"):
-                    estado.ejecutar_golpe_q()
-            elif comando == "ACCION":
-                if hasattr(estado, "stack_manager"):
-                    cabeza = estado.snake.get_cabeza()
-                    if cabeza:
-                        dx = dy = 0
-                        direccion = estado.snake.direccion
-                        if direccion == "ARRIBA":    dy = -TAMANO_CELDA
-                        elif direccion == "ABAJO":   dy = TAMANO_CELDA
-                        elif direccion == "IZQUIERDA": dx = -TAMANO_CELDA
-                        elif direccion == "DERECHA":  dx = TAMANO_CELDA
-                        estado.stack_manager.process_events(cabeza[0] + dx, cabeza[1] + dy, "interact", estado.snake.z)
-
-        elif accion == "auto_caminar":
-            direccion = params.get("direccion", "").upper()
-            if direccion in ("DERECHA", "IZQUIERDA", "ARRIBA", "ABAJO"):
-                self._auto_direccion = direccion
-            else:
-                self._auto_direccion = None
-
         elif accion == "run_script":
             func_name = params.get("function_name", "")
             args_str = params.get("args", "")
@@ -947,28 +920,69 @@ class StackManager:
 
     def _ejecutar_accion_interna(self, accion, params, estado):
         if accion == "_arbol_choice":
-            destino = params.get("destino", "")
-            if self._arbol_dialogo:
-                self._arbol_dialogo["nid_actual"] = destino
-                self._avanzar_arbol_dialogo(estado)
-
+            self._handle_arbol_choice(params, estado)
         elif accion == "accion_botton":
-            tecla = params.get("tecla", "").upper()
-            if MOSTRAR_LOGS: print(f"[BOTON] tecla={tecla}")
-            if tecla == "Q":
-                self.estado.ejecutar_golpe_q()
-
+            self._handle_button_event(params, estado)
         elif accion == "esperar":
-            segundos = float(params.get("segundos", 1))
-            self.timer_hasta = pygame.time.get_ticks() + max(1, int(segundos * 1000))
-            self._bloqueo_por = "timer"
-            return True
-
+            return self._handle_wait(params)
         elif accion == "bloquear_eventos":
-            bloquear = params.get("bloquear", True)
-            if isinstance(bloquear, str):
-                bloquear = bloquear.lower() in ("true", "1", "si")
-            self.bloqueado = bool(bloquear)
+            self._handle_block_events(params)
+        elif accion == "comando_automatico":
+            self._handle_auto_command(params, estado)
+        elif accion == "auto_caminar":
+            self._handle_auto_walk(params)
+        return False
+
+    def _handle_arbol_choice(self, params, estado):
+        destino = params.get("destino", "")
+        if self._arbol_dialogo:
+            self._arbol_dialogo["nid_actual"] = destino
+            self._avanzar_arbol_dialogo(estado)
+
+    def _handle_button_event(self, params, estado):
+        tecla = params.get("tecla", "").upper()
+        if MOSTRAR_LOGS: print(f"[BOTON] tecla={tecla}")
+        if tecla == "Q":
+            self.estado.ejecutar_golpe_q()
+
+    def _handle_wait(self, params):
+        segundos = float(params.get("segundos", 1))
+        self.timer_hasta = pygame.time.get_ticks() + max(1, int(segundos * 1000))
+        self._bloqueo_por = "timer"
+        return True
+
+    def _handle_block_events(self, params):
+        bloquear = params.get("bloquear", True)
+        if isinstance(bloquear, str):
+            bloquear = bloquear.lower() in ("true", "1", "si")
+        self.bloqueado = bool(bloquear)
+
+    def _handle_auto_command(self, params, estado):
+        comando = params.get("comando", "")
+        if comando in ("DERECHA", "IZQUIERDA", "ARRIBA", "ABAJO"):
+            if hasattr(estado, "snake"):
+                estado.snake.cambiar_direccion(comando)
+        elif comando == "ATAQUE":
+            if hasattr(estado, "ejecutar_golpe_q"):
+                estado.ejecutar_golpe_q()
+        elif comando == "ACCION":
+            if hasattr(estado, "stack_manager"):
+                cabeza = estado.snake.get_cabeza()
+                if cabeza:
+                    dx = dy = 0
+                    direccion = estado.snake.direccion
+                    if direccion == "ARRIBA":    dy = -TAMANO_CELDA
+                    elif direccion == "ABAJO":   dy = TAMANO_CELDA
+                    elif direccion == "IZQUIERDA": dx = -TAMANO_CELDA
+                    elif direccion == "DERECHA":  dx = TAMANO_CELDA
+                    estado.stack_manager.process_events(cabeza[0] + dx, cabeza[1] + dy, "interact", estado.snake.z)
+
+    def _handle_auto_walk(self, params):
+        direccion = params.get("direccion", "").upper()
+        if direccion in ("DERECHA", "IZQUIERDA", "ARRIBA", "ABAJO"):
+            self._auto_direccion = direccion
+        else:
+            self._auto_direccion = None
 
     def _remover_entidades_en(self, estado, gx, gy):
         px = gx * TAMANO_CELDA
