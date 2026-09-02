@@ -485,6 +485,10 @@ class StackManager:
         if hasattr(estado, "monedas"):
             estado.monedas.dar(mid, cantidad)
 
+    def dar_moneda(self, mid, cantidad):
+        """Alias público para _moneda_dar (usado por acciones migradas)."""
+        self._moneda_dar(mid, cantidad)
+
     def _moneda_quitar(self, mid, cantidad):
         estado = self.estado
         if mid == "escamas" and hasattr(estado, "snake"):
@@ -492,6 +496,10 @@ class StackManager:
             return
         if hasattr(estado, "monedas"):
             estado.monedas.quitar(mid, cantidad)
+
+    def quitar_moneda(self, mid, cantidad):
+        """Alias público para _moneda_quitar (usado por acciones migradas)."""
+        self._moneda_quitar(mid, cantidad)
 
     # ── Árbol de diálogo ──────────────────────────────────
 
@@ -685,14 +693,7 @@ class StackManager:
             except Exception as e:
                 print(f"[EVENTO] acción registrada '{accion}' falló: {e}. Usando fallback legacy.")
 
-        if accion == "remove_sprite":
-            gx = x // TAMANO_CELDA
-            gy = y // TAMANO_CELDA
-            if hasattr(estado, "remove_tile_sprite"):
-                estado.remove_tile_sprite(gx, gy, z)
-            self._remover_entidades_en(estado, gx, gy)
-
-        elif accion == "spawn_entity":
+        if accion == "spawn_entity":
             sprite_id = params.get("sprite_id", "")
             ox = int(params.get("offset_x", 0))
             oy = int(params.get("offset_y", 0))
@@ -762,21 +763,6 @@ class StackManager:
                 estado.gate_salida_id = exit_id if exit_id else None
                 estado.cambiando_nivel = True
 
-        elif accion == "abrir_menu":
-            menu_id = params.get("menu_id", "")
-            if menu_id and hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
-                estado.mostrando_inventario = True
-                estado.menu.abrir_menu(menu_id)
-
-        elif accion == "examinar_key_item":
-            item = params.get("item", "")
-            if item and hasattr(estado, "inventario"):
-                repo = RepositorioObjetos()
-                cfg = repo.get_objeto(item)
-                desc = cfg.get("descripcion", "Sin descripción") if cfg else "Sin descripción"
-                estado.mensaje_temporal = f"{desc}"
-                estado.tiempo_mensaje = 120
-
         elif accion == "consume_pp":
             cantidad = int(params.get("cantidad", 1))
             if hasattr(estado, "habilidades"):
@@ -796,14 +782,6 @@ class StackManager:
                             estado.snake.iniciar_dormido((px, py))
                             print(f"[EVENTO] mover_a -> evento '{evento_id}' en ({gx},{gy}) Z={z}")
                             return
-
-        elif accion == "give_moneda":
-            self._moneda_dar(params.get("moneda", ""),
-                             int(params.get("cantidad", 1)))
-
-        elif accion == "remove_moneda":
-            self._moneda_quitar(params.get("moneda", ""),
-                                int(params.get("cantidad", 1)))
 
         elif accion == "damage":
             cantidad = int(params.get("cantidad", 1))
@@ -855,13 +833,6 @@ class StackManager:
                 hid = getattr(HabilidadID, habilidad.upper(), habilidad)
                 estado.habilidades.equipar_habilidad(hid)
                 print(f"[EVENTO] habilidad '{habilidad}' equipada")
-
-        elif accion == "mostrar_ventana":
-            ventana_id = params.get("ventana_id", "")
-            if ventana_id and hasattr(estado, "ventana"):
-                estado.ventana.iniciar(ventana_id)
-                self._bloqueo_por = "ventana"
-                return True
 
         elif accion == "iniciar_minijuego":
             minijuego_id = params.get("minijuego_id", "")
@@ -1017,6 +988,10 @@ class StackManager:
                 if hasattr(ent, "x") and hasattr(ent, "y") and hasattr(ent, "activo"):
                     if ent.x == px and ent.y == py:
                         ent.activo = False
+
+    def remover_entidades_en(self, estado, gx, gy):
+        """Alias público para _remover_entidades_en (usado por acciones migradas)."""
+        self._remover_entidades_en(estado, gx, gy)
 
     def _spawn_from_sprite(self, sprite_id, x, y):
         from levels.level_parser import _make_from_behavior
