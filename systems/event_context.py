@@ -21,6 +21,10 @@ class EventContext:
         position: (gx, gy, z) celda donde ocurrió el evento.
         state:   GameState global (inventario, flags, habilidades, monedas...).
         custom:  datos extra arbitrarios (damage, attack_type, etc.).
+        manager: StackManager actual (para acciones que necesitan estado interno).
+        dialog_service:  DialogoSystem (para acciones de diálogo).
+        shop_service:    ShopSystem (para acciones de tienda).
+        battle_service:  arena_boss / boss (para acciones de combate).
     """
 
     source: Any = None
@@ -28,6 +32,10 @@ class EventContext:
     position: tuple[int, int, int] = (0, 0, 0)
     state: Any = None
     custom: dict[str, Any] = field(default_factory=dict)
+    manager: Any = None
+    dialog_service: Any = None
+    shop_service: Any = None
+    battle_service: Any = None
 
     # ── Acceso directo a sub-estados (duck-typing) ─────────
 

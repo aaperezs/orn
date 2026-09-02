@@ -675,26 +675,17 @@ class StackManager:
                 state=estado,
                 source=getattr(estado, "snake", None),
                 position=(x, y, z),
+                manager=self,
+                dialog_service=getattr(estado, "dialogo", None),
+                shop_service=getattr(estado, "shop_system", None),
+                battle_service=getattr(estado, "arena_boss", None),
             )
             try:
                 return bool(cls().execute(ctx, params))
             except Exception as e:
                 print(f"[EVENTO] acción registrada '{accion}' falló: {e}. Usando fallback legacy.")
 
-        if accion == "show_message":
-            mensaje = params.get("mensaje", "")
-            if mensaje:
-                estado.mensaje_temporal = mensaje
-                estado.tiempo_mensaje = 90
-
-        elif accion == "replace_sprite":
-            sprite_id = params.get("sprite_id", "")
-            gx = x // TAMANO_CELDA
-            gy = y // TAMANO_CELDA
-            if hasattr(estado, "replace_tile_sprite"):
-                estado.replace_tile_sprite(gx, gy, sprite_id, z)
-
-        elif accion == "remove_sprite":
+        if accion == "remove_sprite":
             gx = x // TAMANO_CELDA
             gy = y // TAMANO_CELDA
             if hasattr(estado, "remove_tile_sprite"):
@@ -710,17 +701,9 @@ class StackManager:
             sy = y + oy * TAMANO_CELDA
             self._spawn_from_sprite(sprite_id, sx, sy)
 
-        elif accion == "start_dialogue":
-            dialogo_id = params.get("dialogo_id", "")
-            if "/" in dialogo_id and hasattr(estado, "dialogo"):
-                personaje, contexto = dialogo_id.split("/", 1)
-                estado.dialogo.iniciar(personaje, contexto,
-                                       al_terminar=lambda: self._mostrar_opciones_plano(estado))
-                self._bloqueo_por = "dialogo"
-                return True
-
-        elif accion == "start_dialog":
-            dialogo_id = params.get("dialog", "") or params.get("dialogo_id", "")
+        elif accion in ("start_dialogue", "start_dialog", "iniciar_dialogo"):
+            dialogo_id = (params.get("dialog", "") or
+                          params.get("dialogo_id", ""))
             if "/" in dialogo_id and hasattr(estado, "dialogo"):
                 personaje, contexto = dialogo_id.split("/", 1)
                 estado.dialogo.iniciar(personaje, contexto,
@@ -737,15 +720,6 @@ class StackManager:
             estado.opciones = []
             self._bloqueo_por = None
             return True
-
-        elif accion == "iniciar_dialogo":
-            dialogo_id = params.get("dialogo_id", "")
-            if "/" in dialogo_id and hasattr(estado, "dialogo"):
-                personaje, contexto = dialogo_id.split("/", 1)
-                estado.dialogo.iniciar(personaje, contexto,
-                                       al_terminar=lambda: self._mostrar_opciones_plano(estado))
-                self._bloqueo_por = "dialogo"
-                return True
 
         elif accion == "dialogo_inline":
             lineas = params.get("lineas", [])
@@ -794,25 +768,6 @@ class StackManager:
                 estado.mostrando_inventario = True
                 estado.menu.abrir_menu(menu_id)
 
-        elif accion == "give_item":
-            item = params.get("item", "")
-            cantidad = int(params.get("cantidad", 1))
-            if item and hasattr(estado, "inventario"):
-                estado.inventario.agregar_item(item, cantidad)
-                repo = RepositorioObjetos()
-                cfg = repo.get_objeto(item)
-                es_clave = cfg.get("tipo") == "objeto_clave" if cfg else False
-                nombre = cfg.get("nombre", item) if cfg else item
-                if es_clave:
-                    mensaje = f"¡Obtuviste [Objeto Clave] {nombre}!"
-                    estado.tiempo_mensaje = 90
-                    if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_apartado"):
-                        estado.menu.abrir_apartado("key_items")
-                else:
-                    mensaje = f"¡{nombre} x{cantidad}!"
-                    estado.tiempo_mensaje = 60
-                estado.mensaje_temporal = mensaje
-
         elif accion == "examinar_key_item":
             item = params.get("item", "")
             if item and hasattr(estado, "inventario"):
@@ -822,34 +777,11 @@ class StackManager:
                 estado.mensaje_temporal = f"{desc}"
                 estado.tiempo_mensaje = 120
 
-        elif accion == "remove_item":
-            item = params.get("item", "")
-            cantidad = int(params.get("cantidad", 1))
-            if item and hasattr(estado, "inventario"):
-                estado.inventario.remover_item(item, cantidad)
-
         elif accion == "consume_pp":
             cantidad = int(params.get("cantidad", 1))
             if hasattr(estado, "habilidades"):
                 for _ in range(cantidad):
                     estado.habilidades.usar_habilidad()
-
-        elif accion == "set_flag":
-            flag = params.get("flag", "")
-            valor = params.get("valor", True)
-            if flag and hasattr(estado, "flags"):
-                estado.flags.set(flag, valor)
-
-        elif accion == "add_flag":
-            flag = params.get("flag", "")
-            cantidad = int(params.get("cantidad", 1))
-            if flag and hasattr(estado, "flags"):
-                estado.flags.add(flag, cantidad)
-
-        elif accion == "clear_flag":
-            flag = params.get("flag", "")
-            if flag and hasattr(estado, "flags"):
-                estado.flags.set(flag, False)
 
         elif accion == "mover_a":
             evento_id = params.get("evento_id", "")
@@ -864,11 +796,6 @@ class StackManager:
                             estado.snake.iniciar_dormido((px, py))
                             print(f"[EVENTO] mover_a -> evento '{evento_id}' en ({gx},{gy}) Z={z}")
                             return
-
-        elif accion == "remove_escamas":
-            cantidad = int(params.get("cantidad", 1))
-            if hasattr(estado, "snake"):
-                estado.snake.perder_escamas(cantidad)
 
         elif accion == "give_moneda":
             self._moneda_dar(params.get("moneda", ""),
@@ -912,12 +839,6 @@ class StackManager:
                 estado.mensaje_temporal = mensaje
                 estado.tiempo_mensaje = 60
 
-        elif accion == "bloquear_mandos":
-            bloquear = params.get("bloquear", True)
-            if isinstance(bloquear, str):
-                bloquear = bloquear.lower() in ("true", "1", "si")
-            estado.mandos_bloqueados = bool(bloquear)
-
         elif accion == "desbloquear_habilidad":
             habilidad = params.get("habilidad", "")
             if habilidad and hasattr(estado, "habilidades"):
@@ -935,28 +856,12 @@ class StackManager:
                 estado.habilidades.equipar_habilidad(hid)
                 print(f"[EVENTO] habilidad '{habilidad}' equipada")
 
-        elif accion == "cambiar_skin":
-            skin = params.get("skin", "")
-            if skin and hasattr(estado, "snake"):
-                estado.snake.set_skin(skin)
-
-        elif accion == "mostrar_boss":
-            visible = params.get("visible", True)
-            if isinstance(visible, str):
-                visible = visible.lower() in ("true", "1", "si")
-            if hasattr(estado, "boss") and estado.boss:
-                estado.boss.vivo = bool(visible)
-
         elif accion == "mostrar_ventana":
             ventana_id = params.get("ventana_id", "")
             if ventana_id and hasattr(estado, "ventana"):
                 estado.ventana.iniciar(ventana_id)
                 self._bloqueo_por = "ventana"
                 return True
-
-        elif accion == "fin_demo":
-            estado.volver_a_menu = True
-            estado.corriendo = False
 
         elif accion == "iniciar_minijuego":
             minijuego_id = params.get("minijuego_id", "")
@@ -976,83 +881,6 @@ class StackManager:
             estado.cambiando_nivel = True
             if hasattr(estado, "audio") and estado.audio.get_current_bgm():
                 estado.audio.stop_bgm(500)
-
-        elif accion == "play_bgm":
-            asset_id = params.get("asset_id", "")
-            fade_ms = int(params.get("fade_ms", 0))
-            if asset_id and hasattr(estado, "audio"):
-                estado.audio.play_bgm(asset_id, fade_ms)
-
-        elif accion == "stop_bgm":
-            fade_ms = int(params.get("fade_ms", 0))
-            if hasattr(estado, "audio"):
-                estado.audio.stop_bgm(fade_ms)
-
-        elif accion == "play_sfx":
-            asset_id = params.get("asset_id", "")
-            if asset_id and hasattr(estado, "audio"):
-                estado.audio.play_sfx(asset_id)
-
-        elif accion == "set_bgm_volume":
-            vol = float(params.get("volumen", 1.0))
-            if hasattr(estado, "audio"):
-                estado.audio.set_bgm_volume(vol)
-
-        elif accion == "set_sfx_volume":
-            vol = float(params.get("volumen", 1.0))
-            if hasattr(estado, "audio"):
-                estado.audio.set_sfx_volume(vol)
-
-        elif accion == "set_resolution":
-            ancho = int(params.get("ancho", 0))
-            alto = int(params.get("alto", 0))
-            if ancho > 0 and alto > 0:
-                from display import set_window_size
-                set_window_size((ancho, alto))
-                from systems import user_prefs
-                prefs = user_prefs.load()
-                prefs["resolution"] = f"{ancho}x{alto}"
-                user_prefs.save(prefs)
-
-        elif accion == "set_volume":
-            vol = float(params.get("volumen", 1.0))
-            if hasattr(estado, "audio"):
-                estado.audio.set_bgm_volume(vol)
-                estado.audio.set_sfx_volume(vol)
-                from systems import user_prefs
-                prefs = user_prefs.load()
-                prefs["bgm_volume"] = vol
-                prefs["sfx_volume"] = vol
-                user_prefs.save(prefs)
-
-        elif accion == "cambiar_fondo":
-            sprite_id = params.get("sprite_id", "")
-            if sprite_id and hasattr(estado, "fondo_activo"):
-                estado.fondo_activo = sprite_id
-                estado.fondo_modo = params.get("modo", "fill")
-
-        elif accion == "mostrar_personaje":
-            personaje_id = params.get("personaje_id", "")
-            posicion = params.get("posicion", "centro")
-            expresion = params.get("expresion", "normal")
-            if personaje_id and hasattr(estado, "personajes_visibles"):
-                sprite_name = f"personajes/{personaje_id}_{expresion}"
-                pos_map = {"izquierda": 0, "centro": 1, "derecha": 2}
-                estado.personajes_visibles[personaje_id] = {
-                    "sprite": sprite_name,
-                    "posicion": pos_map.get(posicion, 1),
-                    "x": 0,
-                    "y": 0,
-                }
-
-        elif accion == "ocultar_personaje":
-            personaje_id = params.get("personaje_id", "")
-            if personaje_id and hasattr(estado, "personajes_visibles"):
-                estado.personajes_visibles.pop(personaje_id, None)
-
-        elif accion == "ocultar_todos_personajes":
-            if hasattr(estado, "personajes_visibles"):
-                estado.personajes_visibles.clear()
 
         elif accion == "mostrar_opciones":
             opciones_data = params.get("opciones", [])
@@ -1092,46 +920,12 @@ class StackManager:
                         elif direccion == "DERECHA":  dx = TAMANO_CELDA
                         estado.stack_manager.process_events(cabeza[0] + dx, cabeza[1] + dy, "interact", estado.snake.z)
 
-        elif accion == "avanzar":
-            direccion = params.get("direccion", "")
-            if direccion and hasattr(estado, "snake"):
-                estado.snake.cambiar_direccion(direccion.upper())
-                estado.snake.mover()
-
         elif accion == "auto_caminar":
             direccion = params.get("direccion", "").upper()
             if direccion in ("DERECHA", "IZQUIERDA", "ARRIBA", "ABAJO"):
                 self._auto_direccion = direccion
             else:
                 self._auto_direccion = None
-
-        elif accion == "despertar":
-            if hasattr(estado, "snake"):
-                estado.snake.despertar()
-
-        elif accion == "_arbol_choice":
-            destino = params.get("destino", "")
-            if self._arbol_dialogo:
-                self._arbol_dialogo["nid_actual"] = destino
-                self._avanzar_arbol_dialogo(estado)
-
-        elif accion == "accion_botton":
-            tecla = params.get("tecla", "").upper()
-            if MOSTRAR_LOGS: print(f"[BOTON] tecla={tecla}")
-            if tecla == "Q":
-                self.estado.ejecutar_golpe_q()
-
-        elif accion == "esperar":
-            segundos = float(params.get("segundos", 1))
-            self.timer_hasta = pygame.time.get_ticks() + max(1, int(segundos * 1000))
-            self._bloqueo_por = "timer"
-            return True
-
-        elif accion == "bloquear_eventos":
-            bloquear = params.get("bloquear", True)
-            if isinstance(bloquear, str):
-                bloquear = bloquear.lower() in ("true", "1", "si")
-            self.bloqueado = bool(bloquear)
 
         elif accion == "run_script":
             func_name = params.get("function_name", "")
@@ -1160,65 +954,6 @@ class StackManager:
                         estado.menu.abrir_menu("shop")
                     estado.mostrando_inventario = True
 
-        elif accion == "open_save_menu":
-            if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
-                estado.mostrando_inventario = True
-                estado.menu.abrir_menu("save")
-
-        elif accion == "open_load_menu":
-            if hasattr(estado, "menu") and hasattr(estado.menu, "abrir_menu"):
-                estado.mostrando_inventario = True
-                estado.menu.abrir_menu("load")
-
-        elif accion == "close_shop":
-            if hasattr(estado, "shop_actual"):
-                estado.shop_actual = None
-            estado.mostrando_inventario = False
-            if hasattr(estado, "menu") and hasattr(estado.menu, "cerrar"):
-                estado.menu.cerrar()
-
-        elif accion == "close_save_menu":
-            if hasattr(estado, "menu") and hasattr(estado.menu, "cerrar"):
-                estado.menu.cerrar()
-            estado.mostrando_inventario = False
-
-        elif accion == "increment_contador":
-            contador_id = params.get("contador_id", "")
-            cantidad = int(params.get("cantidad", 1))
-            if contador_id and hasattr(estado, "contadores"):
-                estado.contadores.add(contador_id, cantidad)
-
-        elif accion == "set_contador":
-            contador_id = params.get("contador_id", "")
-            valor = int(params.get("valor", 0))
-            if contador_id and hasattr(estado, "contadores"):
-                estado.contadores.set(contador_id, valor)
-
-        elif accion == "restock_shop":
-            shop_id = params.get("shop_id", "")
-            item_id = params.get("item_id", "")
-            if shop_id and hasattr(estado, "shop_system"):
-                estado.shop_system.restockear(shop_id, item_id or None)
-
-        elif accion == "add_shop_stock":
-            shop_id = params.get("shop_id", "")
-            item_id = params.get("item_id", "")
-            cantidad = int(params.get("cantidad", 1))
-            if shop_id and item_id and hasattr(estado, "shop_system"):
-                estado.shop_system.anadir_stock(shop_id, item_id, cantidad)
-
-        elif accion == "modify_shop_price":
-            shop_id = params.get("shop_id", "")
-            item_id = params.get("item_id", "")
-            moneda = params.get("moneda", "")
-            nuevo_precio = int(params.get("precio", 0))
-            if shop_id and item_id and moneda and hasattr(estado, "shop_system"):
-                estado.shop_system.modificar_precio(shop_id, item_id, moneda, nuevo_precio)
-
-        elif accion == "trigger_restock":
-            # Mecanismo v1 eliminado: el restock lo manejan los eventos globales.
-            pass
-
         elif accion == "save_game":
             slot = int(params.get("slot", 1))
             dev = params.get("dev", False)
@@ -1238,6 +973,31 @@ class StackManager:
                 ok, msg = estado.save_system.cargar_slot(slot, dev=dev)
                 estado.mensaje_temporal = msg
                 estado.tiempo_mensaje = 90
+
+    def _ejecutar_accion_interna(self, accion, params, estado):
+        if accion == "_arbol_choice":
+            destino = params.get("destino", "")
+            if self._arbol_dialogo:
+                self._arbol_dialogo["nid_actual"] = destino
+                self._avanzar_arbol_dialogo(estado)
+
+        elif accion == "accion_botton":
+            tecla = params.get("tecla", "").upper()
+            if MOSTRAR_LOGS: print(f"[BOTON] tecla={tecla}")
+            if tecla == "Q":
+                self.estado.ejecutar_golpe_q()
+
+        elif accion == "esperar":
+            segundos = float(params.get("segundos", 1))
+            self.timer_hasta = pygame.time.get_ticks() + max(1, int(segundos * 1000))
+            self._bloqueo_por = "timer"
+            return True
+
+        elif accion == "bloquear_eventos":
+            bloquear = params.get("bloquear", True)
+            if isinstance(bloquear, str):
+                bloquear = bloquear.lower() in ("true", "1", "si")
+            self.bloqueado = bool(bloquear)
 
     def _remover_entidades_en(self, estado, gx, gy):
         px = gx * TAMANO_CELDA

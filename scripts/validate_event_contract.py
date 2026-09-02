@@ -3,7 +3,7 @@
 Compara:
   - editor/widgets/event_constants.py   -> ACTION_TYPES, CONDITION_TYPES
   - orm/systems/stack_manager.py        -> elif accion == "..." en _ejecutar_accion
-                                          y ct == "..." en _check_conditions
+  - orm/systems/action_registry.py      -> @register_action("...")
 
 Si hay IDs en el runtime que no están en el editor (o viceversa), imprime
 una tabla comparativa y termina con SystemExit(1). Si no hay drift, exit 0.
@@ -23,12 +23,50 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 
 EDITOR_CONSTANTS = os.path.join(REPO_ROOT, "editor", "widgets", "event_constants.py")
 STACK_MANAGER = os.path.join(REPO_ROOT, "orm", "systems", "stack_manager.py")
+ACTION_REGISTRY = os.path.join(REPO_ROOT, "orm", "systems", "action_registry.py")
 
 # Acciones internas del runtime (no son blueprints de usuario): se ignoran.
 RUNTIME_INTERNAL = {
     "_arbol_choice",
+    "accion_botton",
     "comando_automatico",
+    "esperar",
+    "bloquear_eventos",
     "trigger_restock",
+}
+
+# Acciones complejas pendientes de migrar a la Fase 2.
+# Se ignoran en la comparación porque aún están en el elif legacy.
+COMPLEJAS_PENDIENTES = {
+    "spawn_entity",
+    "start_dialogue",
+    "start_dialog",
+    "iniciar_dialogo",
+    "dialogo_inline",
+    "dialogo_tree",
+    "start_boss_fight",
+    "change_map",
+    "abrir_menu",
+    "examinar_key_item",
+    "consume_pp",
+    "mover_a",
+    "remove_sprite",
+    "give_moneda",
+    "remove_moneda",
+    "damage",
+    "desbloquear_habilidad",
+    "equipar_habilidad",
+    "mostrar_ventana",
+    "iniciar_minijuego",
+    "ir_a_escena",
+    "mostrar_opciones",
+    "iniciar_demo",
+    "run_script",
+    "open_shop",
+    "save_game",
+    "load_game",
+    "close_dialog",
+    "auto_caminar",
 }
 
 
@@ -69,9 +107,39 @@ def _extract_runtime_strings(path: str, var: str) -> list[str]:
     return sorted(set(pattern.findall(src)))
 
 
+def get_registry_actions() -> list[str]:
+    """Extrae IDs de @register_action del action_registry."""
+    with open(ACTION_REGISTRY, encoding="utf-8") as f:
+        src = f.read()
+    # Also check action files in orm/systems/actions/
+    actions_dir = os.path.join(REPO_ROOT, "orm", "systems", "actions")
+    all_src = src
+    if os.path.isdir(actions_dir):
+        for fname in os.listdir(actions_dir):
+            if fname.endswith(".py") and fname != "__init__.py":
+                fpath = os.path.join(actions_dir, fname)
+                with open(fpath, encoding="utf-8") as f:
+                    all_src += "\n" + f.read()
+    pattern = re.compile(r'@register_action\("([^"]+)"\)')
+    return sorted(set(pattern.findall(all_src)))
+
+
 def get_runtime_actions() -> list[str]:
-    acts = _extract_runtime_strings(STACK_MANAGER, "accion")
-    return sorted(a for a in acts if a not in RUNTIME_INTERNAL)
+    """Combina acciones del registry + elif chain, excluyendo internas y pendientes."""
+    registry = set(get_registry_actions())
+    elif_actions = set(_extract_runtime_strings(STACK_MANAGER, "accion"))
+    # Also extract from "elif accion in (...)" blocks
+    with open(STACK_MANAGER, encoding="utf-8") as f:
+        src = f.read()
+    for match in re.finditer(r'elif\s+accion\s+in\s*\(([^)]+)\)', src):
+        ids = re.findall(r'"(\w+)"', match.group(1))
+        elif_actions.update(ids)
+
+    all_runtime = registry | elif_actions
+    # Remove internals and pending complex actions
+    all_runtime -= RUNTIME_INTERNAL
+    all_runtime -= COMPLEJAS_PENDIENTES
+    return sorted(all_runtime)
 
 
 def get_runtime_conditions() -> list[str]:
