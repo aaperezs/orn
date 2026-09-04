@@ -9,7 +9,7 @@ class DialogoInline(GameAction):
         lineas = params.get("lineas", [])
         quien = params.get("quien", "")
         if lineas and ctx.dialog_service:
-            ctx.dialog_service.iniciar_inline(lineas, boss_nombre=quien)
+            ctx.dialog_service.iniciar_inline(lineas, nombre=quien)
             ctx.manager._bloqueo_por = "dialogo"
             return True
         return False

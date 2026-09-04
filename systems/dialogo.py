@@ -91,7 +91,8 @@ class DialogoSystem:
         self.char_idx = 0
         self.terminado = False
         self.al_terminar = None
-        self.boss_id = None
+        self.dialog_id = None
+        self.personaje_nombre = ""
         self.tipo = None
         self.options = []
         self.tiempo_espera = 0
@@ -106,25 +107,29 @@ class DialogoSystem:
             print(f"Error cargando dialogos: {e}")
             return {}
 
-    def iniciar(self, boss_id, tipo, al_terminar=None, boss_nombre=""):
-        if boss_id not in self.dialogos:
-            print(f"Dialogo para {boss_id}/{tipo} no encontrado")
+    def iniciar(self, dialog_id, tipo, al_terminar=None, nombre=""):
+        if dialog_id not in self.dialogos:
+            print(f"Dialogo para {dialog_id}/{tipo} no encontrado")
             if al_terminar:
                 al_terminar()
             return
-        lineas_tipo = self.dialogos[boss_id].get(tipo, [])
+        grupo = self.dialogos[dialog_id]
+        # Obtener nombre del JSON (campo "name") o usar el parámetro nombre
+        nombre_grupo = grupo.get("name", "")
+        personaje_nombre = nombre or nombre_grupo
+        lineas_tipo = grupo.get(tipo, [])
         options = []
         if isinstance(lineas_tipo, dict):
             options = lineas_tipo.get("options", [])
             lineas_tipo = lineas_tipo.get("dialog") or lineas_tipo.get("flat", [])
         if not lineas_tipo:
-            print(f"No hay lineas de dialogo para {boss_id}/{tipo}")
+            print(f"No hay lineas de dialogo para {dialog_id}/{tipo}")
             if al_terminar:
                 al_terminar()
             return
 
-        self.boss_id = boss_id
-        self.boss_nombre = boss_nombre
+        self.dialog_id = dialog_id
+        self.personaje_nombre = personaje_nombre
         self.tipo = tipo
         self.lineas = lineas_tipo
         self.options = options
@@ -135,9 +140,9 @@ class DialogoSystem:
         self.al_terminar = al_terminar
         self.tiempo_espera = 0
 
-    def iniciar_inline(self, lineas, boss_nombre="", al_terminar=None):
-        self.boss_id = "inline"
-        self.boss_nombre = boss_nombre
+    def iniciar_inline(self, lineas, nombre="", al_terminar=None):
+        self.dialog_id = "inline"
+        self.personaje_nombre = nombre
         self.tipo = "inline"
         self.lineas = lineas
         self.options = []
@@ -201,7 +206,7 @@ class DialogoSystem:
         for i in range(0, caja_ancho, 20):
             pygame.draw.line(pantalla, MADERA, (caja_x + i, caja_y), (caja_x + i, caja_y + caja_alto), 1)
         pygame.draw.rect(pantalla, MADERA_CLARO, (caja_x + 6, caja_y + 6, caja_ancho - 12, 28))
-        nombre = self.boss_nombre if self.boss_nombre else self.boss_id.capitalize()
+        nombre = self.personaje_nombre if self.personaje_nombre else self.dialog_id.capitalize()
         _render_con_brillo(pantalla, nombre, FUENTE_NOMBRE, DORADO, (240, 230, 200), (caja_x + 14, caja_y + 10))
 
         contenido_x = caja_x + 14

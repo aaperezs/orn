@@ -46,8 +46,8 @@ class TestAdaptadorShopLegacy:
 
     def test_ignora_choices_sin_shop(self):
         sm, estado = _sm([
-            {"text": "Hablar", "action": "start_dialog", "dialog": "x/y"},
+            {"text": "Hablar", "action": "start_dialogue", "dialogo_id": "x/y"},
         ])
         sm._mostrar_opciones_plano(estado)
         params = estado.opciones[0]["acciones"][0]["params"]
-        assert params == {"dialog": "x/y"}
+        assert params == {"dialogo_id": "x/y"}

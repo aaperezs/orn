@@ -29,6 +29,7 @@ class StackManager:
         self._bloqueo_por = None  # None, "timer", "dialogo", "ventana", "choice", "dialogo_tree"
         self._auto_direccion = None  # Dirección para auto_caminar
         self._arbol_dialogo = None  # Estado del arbol de diálogo en reproducción
+        self._restaurar_options_callback = False  # Callback para restaurar Options tras acción bloqueante
 
     def load_stacks(self, nivel_id):
         self._stacks = {}
@@ -151,6 +152,9 @@ class StackManager:
 
     def actualizar(self, estado):
         """Se llama cada frame. Procesa bloqueos por timer o diálogo."""
+        # Guardar bloqueo anterior para detectar transiciones
+        bloqueo_anterior = self._bloqueo_por
+
         if self._bloqueo_por == "timer":
             if pygame.time.get_ticks() >= self.timer_hasta:
                 self.bloqueado = False
@@ -176,11 +180,21 @@ class StackManager:
                 self._bloqueo_por = None
         elif self._bloqueo_por == "shop":
             if not getattr(estado, "shop_actual", None):
-                self._bloqueo_por = None
-                self._avanzar_arbol_dialogo(estado)
+                if self._restaurar_options_callback:
+                    self._bloqueo_por = "choice"
+                else:
+                    self._bloqueo_por = None
+                    self._avanzar_arbol_dialogo(estado)
         elif self._bloqueo_por == "minijuego":
             if not estado.mostrando_minijuego:
                 self._bloqueo_por = None
+
+        # Callback automático: si venimos de dialogo/shop/minijuego y volvemos a choice,
+        # y hay callback pendiente, restaurar Options
+        if self._restaurar_options_callback:
+            if bloqueo_anterior in ("dialogo", "shop", "minijuego") and self._bloqueo_por == "choice":
+                self._restaurar_options_callback = False
+                self._mostrar_opciones_plano(estado)
 
         if self._auto_direccion and hasattr(estado, "snake"):
             estado.snake.cambiar_direccion(self._auto_direccion)
@@ -545,7 +559,7 @@ class StackManager:
         if tipo == "dialogo":
             texto = node.get("texto", "")
             quien = node.get("quien", personaje)
-            estado.dialogo.iniciar_inline([texto], boss_nombre=quien)
+            estado.dialogo.iniciar_inline([texto], nombre=quien)
             ad["nid_actual"] = node.get("next", "")
             # Cuando termine el diálogo, seguimos
             estado.dialogo.al_terminar = lambda: self._on_arbol_dialogo_end(estado)
@@ -681,6 +695,12 @@ class StackManager:
     def _ejecutar_accion(self, accion, params, x, y, z=0):
         estado = self.estado
 
+        # Opt-out: acciones que NO restauran Options al terminar
+        NO_RESTAURAR_OPTIONS = set()
+
+        # Detectar si estamos en modo Options
+        en_modo_options = (self._bloqueo_por == "choice")
+
         # Registry-first: si la acción está migrada, ejecuta con EventContext.
         # Fallback legacy: si no está registrada o lanza excepción, cae al elif.
         from systems.action_registry import get_action
@@ -697,12 +717,23 @@ class StackManager:
                 battle_service=getattr(estado, "arena_boss", None),
             )
             try:
-                return bool(cls().execute(ctx, params))
+                bloquea = bool(cls().execute(ctx, params))
+                # Si estamos en modo Options y la acción bloquea, registrar callback
+                # salvo que sea una acción de opt-out (close_dialog)
+                if en_modo_options and bloquea and accion not in NO_RESTAURAR_OPTIONS:
+                    self._restaurar_options_callback = True
+                return bloquea
             except Exception as e:
                 print(f"[EVENTO] acción registrada '{accion}' falló: {e}. Usando fallback legacy.")
 
         # Fallback: si la acción no está en el registry, buscar en internas
         if hasattr(self, '_ejecutar_accion_interna'):
+            # Para acciones internas, verificar si es close_dialog
+            if accion in NO_RESTAURAR_OPTIONS:
+                return self._ejecutar_accion_interna(accion, params, estado)
+            # Otras acciones internas en modo options
+            if en_modo_options:
+                self._restaurar_options_callback = True
             return self._ejecutar_accion_interna(accion, params, estado)
         return False
 

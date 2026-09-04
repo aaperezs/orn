@@ -6,7 +6,10 @@
   "category": "snake_rpg",
   "graphics": {
     "tile_size": 20,
-    "resolution": [800, 600],
+    "resolution": [
+      800,
+      600
+    ],
     "pixel_art_scale": 1,
     "tileset": null
   },
@@ -25,15 +28,15 @@
       },
       "title": {
         "duration_ms": 2000,
-        "enabled": true
+        "enabled": false
       },
       "main_menu": {
         "duration_ms": 0,
-        "enabled": true
+        "enabled": false
       },
       "prologue": {
         "duration_ms": 0,
-        "enabled": true
+        "enabled": false
       }
     }
   }

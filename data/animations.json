@@ -88,6 +88,7 @@
   "fenryr_store": {
     "frames": [
       "fenryr",
+      "fenryr_2",
       "fenryr_2"
     ],
     "interval": 500,

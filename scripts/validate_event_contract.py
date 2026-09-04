@@ -38,10 +38,7 @@ RUNTIME_INTERNAL = {
 
 # Alias legacy que el runtime soporta pero el editor NO debe mostrar
 # (son redundantes con la acción canónica).
-RUNTIME_ALIASES = {
-    "start_dialog",      # alias de start_dialogue
-    "iniciar_dialogo",   # alias de start_dialogue
-}
+RUNTIME_ALIASES = {}
 
 
 # ── Extracción desde el editor ─────────────────────────────
@@ -113,7 +110,7 @@ def get_runtime_actions() -> list[str]:
     all_runtime = registry | elif_actions
     # Remove internals, aliases, and pending complex actions
     all_runtime -= RUNTIME_INTERNAL
-    all_runtime -= RUNTIME_ALIASES
+    all_runtime -= set(RUNTIME_ALIASES.keys())
     return sorted(all_runtime)
 
 

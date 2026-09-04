@@ -243,11 +243,11 @@ class InputManager:
         if not (0 <= menu.seleccion < len(items)):
             return False
         it = items[menu.seleccion]
-        opciones = it.get("opciones")
+        opciones = getattr(it, "opciones", None) if hasattr(it, "opciones") else it.get("opciones") if hasattr(it, "get") else None
         if not opciones:
             return False
         indices = getattr(menu, "opcion_indices", {})
-        item_id = it.get("id", "")
+        item_id = getattr(it, "item_id", "") or (it.get("id", "") if hasattr(it, "get") else "")
         key = item_id if item_id else f"@{menu.seleccion}"
         idx = indices.get(key)
         if idx is None:

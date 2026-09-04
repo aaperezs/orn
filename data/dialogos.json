@@ -1,5 +1,6 @@
 {
   "tronco": {
+    "name": "Tronco",
     "entrada": [
       "{tronco_face} Orm, se que llevas gran lamento sobre tu alma...",
       "{tronco_face} ...pero los dioses me han puesto en tu camino para evitar que cometas un error.",
@@ -12,6 +13,7 @@
     ]
   },
   "fenryr_store": {
+    "name": "Fenrir",
     "bienvenida": {
       "dialog": [
         "{fenryr} Mi nombre es Fenrir, aca nos presentamos oliendonos la cola."
@@ -22,8 +24,8 @@
           "choices": [
             {
               "text": "Hablar",
-              "action": "start_dialog",
-              "dialog": "fenryr_store/historia"
+              "action": "start_dialogue",
+              "dialogo_id": "fenryr_store/historia"
             },
             {
               "text": "Tienda",
@@ -36,6 +38,11 @@
             }
           ]
         }
+      ]
+    },
+    "historia": {
+      "dialog": [
+        "Hola mundo"
       ]
     }
   }

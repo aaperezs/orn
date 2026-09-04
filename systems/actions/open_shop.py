@@ -14,4 +14,6 @@ class OpenShop(GameAction):
                 if hasattr(ctx.state, "menu") and hasattr(ctx.state.menu, "abrir_menu"):
                     ctx.state.menu.abrir_menu("shop")
                 ctx.state.mostrando_inventario = True
+                ctx.manager._bloqueo_por = "shop"
+                return True
         return False
